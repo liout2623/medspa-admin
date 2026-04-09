@@ -24,7 +24,6 @@ const router = createRouter({
 router.beforeEach((to) => {
   const auth = useAuthStore()
   auth.init()
-
   if (to.path !== '/login' && !auth.token) return '/login'
   if (to.path === '/login' && auth.token) return '/users'
 })
