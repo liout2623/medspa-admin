@@ -9,8 +9,8 @@
       <input class="input" v-model="keyword" placeholder="用户名/姓名/手机号" @keyup.enter="onSearch" />
       <select class="select" v-model="role">
         <option value="">全部角色</option>
-        <option value="ADMIN">ADMIN</option>
-        <option value="STAFF">STAFF</option>
+        <option value="ADMIN">管理员</option>
+        <option value="STAFF">员工</option>
       </select>
       <select class="select" v-model="activeText">
         <option value="">全部状态</option>
@@ -32,7 +32,11 @@
           <td>{{ u.id }}</td>
           <td>{{ u.username }}</td>
           <td>{{ u.displayName }}</td>
-          <td><span class="badge" :class="u.role === 'ADMIN' ? 'badge-admin' : ''">{{ u.role }}</span></td>
+          <td>
+            <span class="badge" :class="u.role === 'ADMIN' ? 'badge-admin' : 'badge-staff'">
+              {{ roleText(u.role) }}
+            </span>
+          </td>
           <td>{{ u.phone || '-' }}</td>
           <td><span class="badge" :class="u.active ? 'badge-on' : 'badge-off'">{{ u.active ? '启用' : '停用' }}</span></td>
           <td>
@@ -62,8 +66,8 @@
         <label>显示名</label><input class="input" v-model.trim="form.displayName" />
         <label>角色</label>
         <select class="select" v-model="form.role">
-          <option value="ADMIN">ADMIN</option>
-          <option value="STAFF">STAFF</option>
+          <option value="ADMIN">管理员</option>
+          <option value="STAFF">员工</option>
         </select>
         <label>手机号</label><input class="input" v-model.trim="form.phone" />
         <label>状态</label>
@@ -100,6 +104,7 @@ const submitting = ref(false)
 
 const totalPage = computed(() => Math.max(1, Math.ceil(total.value / size.value)))
 const parseErr = (e: any, fallback: string) => e?.response?.data?.message || fallback
+const roleText = (r: string) => (r === 'ADMIN' ? '管理员' : '员工')
 
 const load = async () => {
   try {
