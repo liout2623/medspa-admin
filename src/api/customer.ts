@@ -14,3 +14,6 @@ export function updateCustomer(id: number, data: CustomerRequest) {
 export function deleteCustomer(id: number) {
   return http.delete<ApiResponse<null>>(`/customers/${id}`)
 }
+export function importCustomers(data: { customers: CustomerRequest[] }) {
+  return http.post<ApiResponse<number>>('/customers/import', data)
+}

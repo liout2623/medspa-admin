@@ -1,6 +1,6 @@
 import http from './http'
 import type { ApiResponse, PageResponse } from '../types/common'
-import type { UserResponse } from './auth'
+import type { UserResponse } from '../types/auth'
 import type { UserUpsertRequest } from '../types/user'
 
 export function listUsers(params: { page: number; size: number; keyword?: string; role?: string; active?: boolean }) {
