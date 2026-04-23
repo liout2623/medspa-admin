@@ -17,3 +17,10 @@ export function deleteCustomer(id: number) {
 export function importCustomers(data: { customers: CustomerRequest[] }) {
   return http.post<ApiResponse<number>>('/customers/import', data)
 }
+
+export function exportCustomers(params?: { keyword?: string }) {
+  return http.get<Blob>('/customers/export', {
+    params,
+    responseType: 'blob'
+  })
+}

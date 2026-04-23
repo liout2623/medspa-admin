@@ -3,6 +3,7 @@
     <div class="panel-head">
       <h3>客户管理</h3>
       <div style="display:flex;gap:8px">
+        <button class="btn btn-ghost" :disabled="exporting" @click="onExport">{{ exporting ? '导出中...' : '导出数据' }}</button>
         <button class="btn btn-ghost" @click="openImport">批量录入</button>
         <button class="btn btn-primary" @click="openCreate">+ 新增客户</button>
       </div>
@@ -96,7 +97,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { useUiStore } from '../../stores/ui'
-import { createCustomer, deleteCustomer, importCustomers, listCustomers, updateCustomer } from '../../api/customer'
+import { createCustomer, deleteCustomer, importCustomers, listCustomers, updateCustomer, exportCustomers } from '../../api/customer'
 
 const ui = useUiStore()
 type CustomerRow = { name: string; phone?: string; email?: string; gender?: string; tags?: string; note?: string; birthday?: string }
@@ -109,6 +110,7 @@ const keyword = ref('')
 const loading = ref(false)
 const submitting = ref(false)
 const importing = ref(false)
+const exporting = ref(false)
 
 const totalPage = computed(() => Math.max(1, Math.ceil(total.value / size.value)))
 const parseErr = (e: any, fallback: string) => e?.response?.data?.message || fallback
@@ -127,6 +129,26 @@ const load = async () => {
 }
 const onSearch = () => { page.value = 1; load() }
 const onReset = () => { keyword.value = ''; page.value = 1; load() }
+
+const onExport = async () => {
+  try {
+    exporting.value = true
+    const res = await exportCustomers({ keyword: keyword.value || undefined })
+    const url = window.URL.createObjectURL(new Blob([res.data]))
+    const link = document.createElement('a')
+    link.href = url
+    link.setAttribute('download', 'customers.xlsx')
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    window.URL.revokeObjectURL(url)
+    ui.toast('导出成功', 'success')
+  } catch (e: any) {
+    ui.toast('导出失败，请稍后重试', 'error')
+  } finally {
+    exporting.value = false
+  }
+}
 
 const showModal = ref(false)
 const editingId = ref<number | null>(null)
