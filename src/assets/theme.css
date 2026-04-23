@@ -1,71 +1,107 @@
 :root{
-  --brand:#0d9488;
-  --brand-dark:#0f766e;
-  --brand-end:#0891b2;
-  --bg:#f0f4f8;
+  --brand:#0f766e;        /* 更沉稳内敛的深青色 */
+  --brand-dark:#115e59;   /* Hover 下的更深色 */
+  --brand-end:#0d9488;    /* 稍微明亮的渐变结束色 */
+  --bg:#f8fafc;           /* 极浅的暖灰色背景，保护视力 */
 }
 *{box-sizing:border-box}
 body{
   margin:0;
   background:var(--bg);
-  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',sans-serif;
-  color:#1f2937;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+  color:#334155;
+  -webkit-font-smoothing: antialiased;
 }
 a{text-decoration:none;color:inherit}
 .container{max-width:1200px;margin:0 auto;padding:0 12px}
 
 /* Buttons */
 .btn{
-  border:none;cursor:pointer;border-radius:10px;padding:9px 14px;
-  font-size:.9rem;transition:.16s ease;
+  border:none;
+  cursor:pointer;
+  border-radius:8px;
+  padding:8px 16px;
+  font-size:0.9rem;
+  font-weight:500;
+  transition:all 0.2s ease;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
 }
-.btn:disabled{opacity:.55;cursor:not-allowed}
+.btn:disabled{opacity:0.55;cursor:not-allowed}
 .btn-primary{
   color:#fff;
-  background:linear-gradient(135deg,var(--brand),var(--brand-end));
-  box-shadow:0 6px 16px rgba(13,148,136,.22);
+  background:var(--brand);
+  box-shadow:0 4px 12px rgba(15,118,110,0.15);
 }
-.btn-primary:hover{transform:translateY(-1px);opacity:.95}
+.btn-primary:not(:disabled):hover{
+  background:var(--brand-dark);
+  transform:translateY(-1px);
+  box-shadow:0 6px 16px rgba(15,118,110,0.2);
+}
 .btn-ghost{
-  background:#fff;border:1.5px solid #e5e7eb;color:#6b7280;
+  background:#fff;
+  border:1px solid #e2e8f0;
+  color:#475569;
 }
-.btn-ghost:hover{background:#f9fafb}
+.btn-ghost:not(:disabled):hover{
+  background:#f8fafc;
+  color:#1e293b;
+  border-color:#cbd5e1;
+}
 
 /* Inputs */
 .input,.select,textarea{
   width:100%;
-  border-radius:10px;
-  border:1.5px solid #e5e7eb;
-  padding:9px 12px;
-  font-size:.9rem;
-  background:#fff;
-  transition:border-color .2s, box-shadow .2s;
+  border-radius:8px;
+  border:1px solid #cbd5e1;
+  padding:10px 14px;
+  font-size:0.9rem;
+  background:#f8fafc;
+  color:#1e293b;
+  transition:all 0.2s ease;
+}
+textarea {
+  resize: vertical;
 }
 .input:focus,.select:focus,textarea:focus{
   outline:none;
   border-color:var(--brand);
-  box-shadow:0 0 0 3px rgba(13,148,136,.12);
+  background:#fff;
+  box-shadow:0 0 0 3px rgba(15,118,110,0.1);
 }
 
-/* Cards */
+/* Cards (极致柔和的阴影与圆润拐角) */
 .card{
-  background:#fff;border-radius:18px;
-  box-shadow:0 1px 4px rgba(0,0,0,.07),0 6px 20px rgba(0,0,0,.04);
+  background:#fff;
+  border-radius:12px;
+  border:1px solid rgba(226, 232, 240, 0.8);
+  box-shadow:0 4px 20px rgba(0, 0, 0, 0.02), 0 1px 3px rgba(0, 0, 0, 0.01);
 }
 
 /* Table */
 .tbl{width:100%;border-collapse:separate;border-spacing:0}
 .tbl thead th{
-  background:#f8fafc;color:#64748b;
-  font-size:.78rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
-  padding:10px 12px;border-bottom:1px solid #e2e8f0;text-align:left;
+  background:#f1f5f9;
+  color:#475569;
+  font-size:0.8rem;
+  font-weight:600;
+  padding:12px 16px;
+  border-bottom:1px solid #e2e8f0;
+  text-align:left;
 }
-.tbl thead th:first-child{border-top-left-radius:10px}
-.tbl thead th:last-child{border-top-right-radius:10px}
+.tbl thead th:first-child{border-top-left-radius:8px}
+.tbl thead th:last-child{border-top-right-radius:8px}
 .tbl tbody td{
-  padding:12px;border-bottom:1px solid #f1f5f9;font-size:.9rem;color:#334155;
+  padding:14px 16px;
+  border-bottom:1px solid #f1f5f9;
+  font-size:0.9rem;
+  color:#334155;
+  transition:background-color 0.2s ease;
 }
-.tbl tbody tr:hover{background:#f8fafc}
+.tbl tbody tr:last-child td{border-bottom:none}
+.tbl tbody tr:hover td{background:#f8fafc;color:#0f172a}
 
 /* Pills / badges */
 .badge{

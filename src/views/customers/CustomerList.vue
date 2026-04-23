@@ -1,18 +1,32 @@
 <template>
   <section class="card panel">
     <div class="panel-head">
-      <h3>客户管理</h3>
       <div style="display:flex;gap:8px">
-        <button class="btn btn-ghost" :disabled="exporting" @click="onExport">{{ exporting ? '导出中...' : '导出数据' }}</button>
-        <button class="btn btn-ghost" @click="openImport">批量录入</button>
-        <button class="btn btn-primary" @click="openCreate">+ 新增客户</button>
+        <button class="btn btn-ghost" :disabled="exporting" @click="onExport">
+          <Download :size="16" />
+          {{ exporting ? '导出中...' : '导出数据' }}
+        </button>
+        <button class="btn btn-ghost" @click="openImport">
+          <FileUp :size="16" />
+          批量录入
+        </button>
+        <button class="btn btn-primary" @click="openCreate">
+          <Plus :size="16" />
+          新增客户
+        </button>
       </div>
     </div>
 
     <div class="toolbar">
-      <input class="input" v-model="keyword" placeholder="姓名/手机号/标签" @keyup.enter="onSearch" />
-      <button class="btn btn-primary" :disabled="loading" @click="onSearch">{{ loading ? '查询中...' : '查询' }}</button>
-      <button class="btn btn-ghost" :disabled="loading" @click="onReset">重置</button>
+      <div style="flex:1; max-width:320px; position:relative">
+        <Search class="search-icon" :size="16" />
+        <input class="input" style="padding-left:36px" v-model="keyword" placeholder="姓名/手机号/标签" @keyup.enter="onSearch" />
+      </div>
+      <button class="btn btn-primary" :disabled="loading" @click="onSearch">查询</button>
+      <button class="btn btn-ghost" :disabled="loading" @click="onReset">
+        <RotateCcw :size="16" />
+        重置
+      </button>
     </div>
 
     <table class="tbl">
@@ -21,13 +35,22 @@
         <tr v-for="c in list" :key="c.id">
           <td>{{ c.id }}</td><td>{{ c.name }}</td><td>{{ c.phone || '-' }}</td><td>{{ c.email || '-' }}</td><td>{{ c.tags || '-' }}</td>
           <td>
-            <button class="btn-mini edit" @click="openEdit(c)">编辑</button>
-            <button class="btn-mini del" @click="onDelete(c.id)">删除</button>
+            <button class="btn-mini edit" @click="openEdit(c)" title="编辑">
+              <Edit2 :size="14" />
+            </button>
+            <button class="btn-mini del" @click="onDelete(c.id)" title="删除">
+              <Trash2 :size="14" />
+            </button>
           </td>
         </tr>
       </tbody>
       <tbody v-else>
-        <tr><td colspan="6" style="text-align:center;color:#94a3b8;padding:28px">暂无数据</td></tr>
+        <tr><td colspan="6" style="text-align:center;color:#94a3b8;padding:40px">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:12px">
+            <Search :size="32" style="color:#cbd5e1" />
+            <span>暂无数据</span>
+          </div>
+        </td></tr>
       </tbody>
     </table>
 
@@ -48,7 +71,7 @@
         <label>性别</label><input class="input" v-model.trim="form.gender" />
         <label>标签</label><input class="input" v-model.trim="form.tags" />
         <label>生日</label><input class="input" type="date" v-model="form.birthday" />
-        <label>备注</label><textarea class="input" rows="3" v-model.trim="form.note"></textarea>
+        <label>备注</label><textarea class="input" rows="3" v-model.trim="form.note" style="resize: vertical;"></textarea>
       </div>
       <div class="actions">
         <button class="btn btn-ghost" @click="closeModal">取消</button>
@@ -96,6 +119,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
+import { Download, FileUp, Plus, Search, RotateCcw, Edit2, Trash2 } from 'lucide-vue-next'
 import { useUiStore } from '../../stores/ui'
 import { createCustomer, deleteCustomer, importCustomers, listCustomers, updateCustomer, exportCustomers } from '../../api/customer'
 
@@ -118,7 +142,7 @@ const parseErr = (e: any, fallback: string) => e?.response?.data?.message || fal
 const load = async () => {
   try {
     loading.value = true
-    const res = await listCustomers({ page: page.value, size: size.value, keyword: keyword.value || undefined })
+    const res = await listCustomers({ page: page.value, size: size.value, keyword: keyword.value || undefined, sort: 'id,asc' })
     list.value = res.data.data.items || []
     total.value = res.data.data.total || 0
   } catch (e: any) {
@@ -235,9 +259,10 @@ onMounted(load)
 <style scoped>
 .panel{padding:16px}
 .panel-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
-.toolbar{display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap}
+.toolbar{display:flex;gap:8px;align-items:center;margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid #f1f5f9;flex-wrap:wrap}
+.search-icon { position:absolute; left:12px; top:50%; transform:translateY(-50%); color:#94a3b8; }
 .pager{display:flex;align-items:center;gap:10px;margin-top:12px}
-.btn-mini{border:0;border-radius:8px;padding:6px 10px;cursor:pointer;margin-right:6px}
+.btn-mini{border:0;border-radius:8px;padding:6px;cursor:pointer;margin-right:6px;display:inline-flex;align-items:center;justify-content:center}
 .btn-mini.edit{background:#eff6ff;color:#2563eb;border:1px solid #bfdbfe}
 .btn-mini.del{background:#fff1f2;color:#e11d48;border:1px solid #fecdd3}
 .mask{position:fixed;inset:0;background:rgba(0,0,0,.36);display:flex;align-items:center;justify-content:center;z-index:2000}

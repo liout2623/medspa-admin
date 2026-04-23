@@ -2,7 +2,7 @@ import http from './http'
 import type { ApiResponse, PageResponse } from '../types/common'
 import type { CustomerRequest, CustomerResponse } from '../types/customer'
 
-export function listCustomers(params: { page: number; size: number; keyword?: string }) {
+export function listCustomers(params: { page: number; size: number; keyword?: string; sort?: string }) {
   return http.get<ApiResponse<PageResponse<CustomerResponse>>>('/customers', { params })
 }
 export function createCustomer(data: CustomerRequest) {

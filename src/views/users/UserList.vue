@@ -1,18 +1,29 @@
 <template>
   <section class="card panel">
     <div class="panel-head">
-      <h3>用户管理</h3>
-      <button class="btn btn-primary" @click="openCreate">+ 新增用户</button>
+      <div style="display:flex;gap:8px">
+        <button v-if="isAdmin" class="btn btn-ghost" :disabled="exporting" @click="onExport">
+          <Download :size="16" />
+          {{ exporting ? '导出中...' : '导出数据' }}
+        </button>
+        <button v-if="isAdmin" class="btn btn-primary" @click="openCreate">
+          <Plus :size="16" />
+          新增用户
+        </button>
+      </div>
     </div>
 
     <div class="toolbar">
-      <input class="input" v-model="keyword" placeholder="用户名/姓名/手机号" @keyup.enter="onSearch" />
-      <select class="select" v-model="role">
+      <div style="flex:1; max-width:280px; position:relative">
+        <Search class="search-icon" :size="16" />
+        <input class="input" style="padding-left:36px" v-model="keyword" placeholder="用户名/姓名/手机号" @keyup.enter="onSearch" />
+      </div>
+      <select class="select" style="max-width:100px" v-model="role">
         <option value="">全部角色</option>
         <option value="ADMIN">管理员</option>
         <option value="STAFF">员工</option>
       </select>
-      <select class="select" v-model="activeText">
+      <select class="select" style="max-width:100px" v-model="activeText">
         <option value="">全部状态</option>
         <option value="true">启用</option>
         <option value="false">停用</option>
@@ -24,7 +35,7 @@
     <table class="tbl">
       <thead>
         <tr>
-          <th>ID</th><th>用户名</th><th>显示名</th><th>角色</th><th>手机号</th><th>状态</th><th style="width:180px">操作</th>
+          <th>ID</th><th>用户名</th><th>显示名</th><th>角色</th><th>手机号</th><th>状态</th><th v-if="isAdmin" style="width:180px">操作</th>
         </tr>
       </thead>
       <tbody v-if="list.length">
@@ -39,14 +50,18 @@
           </td>
           <td>{{ u.phone || '-' }}</td>
           <td><span class="badge" :class="u.active ? 'badge-on' : 'badge-off'">{{ u.active ? '启用' : '停用' }}</span></td>
-          <td>
-            <button class="btn-mini edit" @click="openEdit(u)">编辑</button>
-            <button class="btn-mini del" @click="onDelete(u.id)">删除</button>
+          <td v-if="isAdmin">
+            <button class="btn-mini edit" @click="openEdit(u)" title="编辑">
+              <Edit2 :size="14" />
+            </button>
+            <button class="btn-mini del" @click="onDelete(u.id)" title="删除">
+              <Trash2 :size="14" />
+            </button>
           </td>
         </tr>
       </tbody>
       <tbody v-else>
-        <tr><td colspan="7" style="text-align:center;color:#94a3b8;padding:28px">暂无数据</td></tr>
+        <tr><td :colspan="isAdmin ? 7 : 6" style="text-align:center;color:#94a3b8;padding:28px">暂无数据</td></tr>
       </tbody>
     </table>
 
@@ -57,7 +72,7 @@
     </div>
   </section>
 
-  <div v-if="showModal" class="mask" @click="closeModal">
+  <div v-if="showModal && isAdmin" class="mask" @click="closeModal">
     <div class="modal card" @click.stop>
       <h4>{{ editingId ? '编辑用户' : '新增用户' }}</h4>
       <div class="grid">
@@ -88,10 +103,15 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
+import { Download, Plus, Edit2, Trash2, Search } from 'lucide-vue-next'
 import { useUiStore } from '../../stores/ui'
-import { createUser, deleteUser, listUsers, updateUser } from '../../api/user'
+import { useAuthStore } from '../../stores/auth'
+import { createUser, deleteUser, listUsers, updateUser, exportUsers } from '../../api/user'
 
 const ui = useUiStore()
+const authStore = useAuthStore()
+const isAdmin = computed(() => authStore.user?.role === 'ADMIN')
+
 const list = ref<any[]>([])
 const total = ref(0)
 const page = ref(1)
@@ -103,7 +123,10 @@ const loading = ref(false)
 const submitting = ref(false)
 
 const totalPage = computed(() => Math.max(1, Math.ceil(total.value / size.value)))
-const parseErr = (e: any, fallback: string) => e?.response?.data?.message || fallback
+const parseErr = (e: any, fallback: string) => {
+  if (e?.response?.status === 403) return '无权限执行该操作'
+  return e?.response?.data?.message || fallback
+}
 const roleText = (r: string) => (r === 'ADMIN' ? '管理员' : '员工')
 
 const load = async () => {
@@ -115,7 +138,8 @@ const load = async () => {
       size: size.value,
       keyword: keyword.value || undefined,
       role: role.value || undefined,
-      active
+      active,
+      sort: 'id,asc'
     })
     list.value = res.data.data.items || []
     total.value = res.data.data.total || 0
@@ -141,11 +165,19 @@ const form = ref<any>({
 })
 
 const openCreate = () => {
+  if (!isAdmin.value) {
+    ui.toast('无权限执行该操作', 'error')
+    return
+  }
   editingId.value = null
   form.value = { username: '', password: '', displayName: '', role: 'STAFF', phone: '', activeText: 'true' }
   showModal.value = true
 }
 const openEdit = (u: any) => {
+  if (!isAdmin.value) {
+    ui.toast('无权限执行该操作', 'error')
+    return
+  }
   editingId.value = u.id
   form.value = {
     username: u.username,
@@ -160,6 +192,10 @@ const openEdit = (u: any) => {
 const closeModal = () => { showModal.value = false }
 
 const onSubmit = async () => {
+  if (!isAdmin.value) {
+    ui.toast('无权限执行该操作', 'error')
+    return
+  }
   if (!form.value.username?.trim()) return ui.toast('用户名不能为空', 'error')
   if (!form.value.displayName?.trim()) return ui.toast('显示名不能为空', 'error')
   if (!editingId.value && !form.value.password) return ui.toast('新增用户时密码不能为空', 'error')
@@ -189,6 +225,10 @@ const onSubmit = async () => {
 }
 
 const onDelete = async (id: number) => {
+  if (!isAdmin.value) {
+    ui.toast('无权限执行该操作', 'error')
+    return
+  }
   const ok = await ui.confirm('删除确认', '确认删除该用户？')
   if (!ok) return
   try {
@@ -201,20 +241,53 @@ const onDelete = async (id: number) => {
   }
 }
 
+const exporting = ref(false)
+const onExport = async () => {
+  if (!isAdmin.value) {
+    ui.toast('无权限执行该操作', 'error')
+    return
+  }
+  if (exporting.value) return
+  try {
+    exporting.value = true
+    const active = activeText.value === '' ? undefined : activeText.value === 'true'
+    const res = await exportUsers({
+      keyword: keyword.value || undefined,
+      role: role.value || undefined,
+      active
+    })
+    const url = window.URL.createObjectURL(new Blob([res.data]))
+    const link = document.createElement('a')
+    link.href = url
+    link.setAttribute('download', 'users.xlsx')
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    window.URL.revokeObjectURL(url)
+    ui.toast('导出成功', 'success')
+  } catch (e: any) {
+    ui.toast(parseErr(e, '导出失败，请稍后重试'), 'error')
+  } finally {
+    exporting.value = false
+  }
+}
+
 onMounted(load)
 </script>
 
 <style scoped>
 .panel{padding:16px}
 .panel-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
-.toolbar{display:grid;grid-template-columns:minmax(220px,1fr) 160px 160px auto auto;gap:8px;align-items:center;margin-bottom:12px}
+.toolbar{display:flex;gap:8px;align-items:center;margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid #f1f5f9;flex-wrap:wrap}
+.search-icon { position:absolute; left:12px; top:50%; transform:translateY(-50%); color:#94a3b8; }
 .pager{display:flex;align-items:center;gap:10px;margin-top:12px}
-.btn-mini{border:0;border-radius:8px;padding:6px 10px;cursor:pointer;margin-right:6px}
+.btn-mini{border:0;border-radius:8px;padding:6px;cursor:pointer;margin-right:6px;display:inline-flex;align-items:center;justify-content:center;}
 .btn-mini.edit{background:#eff6ff;color:#2563eb;border:1px solid #bfdbfe}
 .btn-mini.del{background:#fff1f2;color:#e11d48;border:1px solid #fecdd3}
 .mask{position:fixed;inset:0;background:rgba(0,0,0,.36);display:flex;align-items:center;justify-content:center;z-index:2000}
-.modal{padding:18px}
+.modal{padding:18px;min-width:400px;}
 .grid{display:grid;grid-template-columns:140px 1fr;gap:10px;align-items:center}
+.grid label{white-space:nowrap;}
 .actions{margin-top:16px;display:flex;justify-content:flex-end;gap:8px}
 @media (max-width: 980px){ .toolbar{grid-template-columns:1fr 1fr} }
 </style>
