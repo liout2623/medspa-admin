@@ -9,9 +9,17 @@
       </div>
 
       <nav class="menu">
+        <RouterLink to="/dashboard" class="menu-item">
+          <LayoutDashboard :size="18" />
+          <span>工作台</span>
+        </RouterLink>
         <RouterLink to="/customers" class="menu-item">
           <Users :size="18" />
           <span>客户管理</span>
+        </RouterLink>
+        <RouterLink to="/services" class="menu-item">
+          <Package :size="18" />
+          <span>服务项目</span>
         </RouterLink>
         <RouterLink v-if="isAdmin" to="/users" class="menu-item">
           <UserCog :size="18" />
@@ -28,6 +36,15 @@
       <header class="topbar">
         <div class="title">{{ pageTitle }}</div>
         <div class="topbar-right">
+          <button
+            class="theme-btn"
+            :title="themeTitle"
+            :aria-label="themeTitle"
+            @click="ui.toggleTheme()"
+          >
+            <Moon v-if="ui.themeMode === 'light'" :size="16" />
+            <Sun v-else :size="16" />
+          </button>
           <div class="current-user">
             <span class="status-dot" />
             <span class="avatar">{{ userInitial }}</span>
@@ -54,10 +71,14 @@ import { useAuthStore } from '../../stores/auth'
 import { useUiStore } from '../../stores/ui'
 import {
   Leaf,
+  LayoutDashboard,
   Users,
+  Package,
   UserCog,
   Shield,
-  LogOut
+  LogOut,
+  Sun,
+  Moon
 } from 'lucide-vue-next'
 
 const auth = useAuthStore()
@@ -76,6 +97,8 @@ const userInitial = computed(() => {
   return String(text).slice(0, 1).toUpperCase()
 })
 
+const themeTitle = computed(() => ui.themeMode === 'light' ? '切换至深色模式' : '切换至浅色模式')
+
 const isAdmin = computed(() => auth.user?.role === 'ADMIN')
 
 const handleLogout = async () => {
@@ -90,17 +113,17 @@ const handleLogout = async () => {
 .shell {
   display: flex;
   height: 100vh;
-  background: #f3f7f7;
+  background: var(--bg);
 }
 
 .sidebar {
   width: 240px;
   flex: 0 0 240px;
-  background: linear-gradient(180deg, #0f5f5b 0%, #0f766e 100%);
+  background: linear-gradient(180deg, #0b5f58 0%, #0f766e 100%);
   color: #e8fffb;
   display: flex;
   flex-direction: column;
-  border-right: 1px solid #0d5b55;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .brand {
@@ -172,8 +195,8 @@ const handleLogout = async () => {
 .topbar {
   height: 60px;
   flex: 0 0 60px;
-  background: #ffffff;
-  border-bottom: 1px solid #dce9e8;
+  background: var(--bg-elevated);
+  border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -181,7 +204,7 @@ const handleLogout = async () => {
 }
 
 .title {
-  color: #11413f;
+  color: var(--text-strong);
   font-size: 18px;
   font-weight: 600;
 }
@@ -192,11 +215,31 @@ const handleLogout = async () => {
   gap: 14px;
 }
 
+.theme-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg-subtle);
+  color: var(--text-muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.theme-btn:hover {
+  color: var(--brand);
+  border-color: var(--brand);
+  box-shadow: 0 8px 18px rgba(15, 118, 110, 0.15);
+}
+
 .current-user {
   display: flex;
   align-items: center;
   gap: 8px;
-  color: #1f4f4a;
+  color: var(--text-strong);
   font-weight: 500;
 }
 
@@ -211,8 +254,8 @@ const handleLogout = async () => {
   width: 24px;
   height: 24px;
   border-radius: 50%;
-  background: #e6fffb;
-  color: #0f766e;
+  background: rgba(20, 184, 166, 0.14);
+  color: var(--brand);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -284,6 +327,11 @@ const handleLogout = async () => {
 
   .logout-btn span {
     display: none;
+  }
+
+  .theme-btn {
+    width: 34px;
+    height: 34px;
   }
 
   .name {

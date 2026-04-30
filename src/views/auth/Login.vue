@@ -1,6 +1,15 @@
 <template>
   <div class="login-page">
     <div class="login-wrap card">
+      <button
+        class="theme-btn"
+        :title="themeTitle"
+        :aria-label="themeTitle"
+        @click="ui.toggleTheme()"
+      >
+        <Moon v-if="ui.themeMode === 'light'" :size="16" />
+        <Sun v-else :size="16" />
+      </button>
       <div class="login-head">
         <div class="icon-wrap">🏥</div>
         <h3>{{ isLoginMode ? '医馆管理系统' : '注册新账号' }}</h3>
@@ -60,11 +69,12 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref, onMounted } from 'vue'
+import { computed, reactive, ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '../../stores/auth'
 import { useUiStore } from '../../stores/ui'
 import { register } from '../../api/auth'
+import { Sun, Moon } from 'lucide-vue-next'
 
 const router = useRouter()
 const route = useRoute()
@@ -74,6 +84,7 @@ const ui = useUiStore()
 const isLoginMode = ref(true)
 const loading = ref(false)
 const err = ref('')
+const themeTitle = computed(() => ui.themeMode === 'light' ? '切换至深色模式' : '切换至浅色模式')
 
 const loginForm = reactive({ username: '', password: '' })
 
@@ -143,13 +154,15 @@ const onRegister = async () => {
 </script>
 
 <style scoped>
-.login-page{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#134e4a 0%,#0d9488 55%,#0891b2 100%);padding:20px}
-.login-wrap{width:380px;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;border-radius:12px;background:#fff;box-shadow:0 10px 25px rgba(0,0,0,.15)}
+.login-page{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--login-bg-start) 0%,var(--login-bg-mid) 55%,var(--login-bg-end) 100%);padding:20px;transition:background-color .3s ease,color .3s ease}
+.login-wrap{position:relative;width:380px;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;border-radius:16px;background:var(--bg-panel);box-shadow:var(--shadow-lg);border:1px solid var(--border)}
+.theme-btn{position:absolute;right:12px;top:12px;width:34px;height:34px;border-radius:10px;border:1px solid var(--border);background:var(--bg-subtle);color:var(--text-muted);display:inline-flex;align-items:center;justify-content:center;cursor:pointer;z-index:2;transition:all .2s ease}
+.theme-btn:hover{color:var(--brand);border-color:var(--brand);box-shadow:0 8px 18px rgba(15,118,110,.18)}
 .login-head{padding:28px;color:#fff;background:linear-gradient(135deg,var(--brand),var(--brand-end));text-align:center;flex-shrink:0}
 .login-body{padding:24px;overflow-y:auto}
 .icon-wrap{font-size:30px}
 .form-item { margin-bottom: 14px; }
-.form-item label { display: block; margin-bottom: 6px; font-size: 13px; color: #475569; font-weight:500; }
+.form-item label { display: block; margin-bottom: 6px; font-size: 13px; color: var(--text-muted); font-weight:500; }
 .req { color: #e11d48; margin-left:2px; }
 .btn-block { width: 100%; margin-top: 8px; }
 .toggle-link {
@@ -165,5 +178,11 @@ const onRegister = async () => {
   text-decoration: underline;
 }
 .register-body::-webkit-scrollbar { width: 5px; }
-.register-body::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+.register-body::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 10px; }
+</style>
+
+<style>
+html.dark .login-head {
+  background: linear-gradient(135deg, rgba(15, 118, 110, 0.95), rgba(20, 184, 166, 0.9));
+}
 </style>

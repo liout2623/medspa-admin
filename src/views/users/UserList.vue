@@ -259,7 +259,7 @@ const onExport = async () => {
     const url = window.URL.createObjectURL(new Blob([res.data]))
     const link = document.createElement('a')
     link.href = url
-    link.setAttribute('download', 'users.xlsx')
+    link.setAttribute('download', '用户档案.xlsx')
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
@@ -278,13 +278,13 @@ onMounted(load)
 <style scoped>
 .panel{padding:16px}
 .panel-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
-.toolbar{display:flex;gap:8px;align-items:center;margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid #f1f5f9;flex-wrap:wrap}
-.search-icon { position:absolute; left:12px; top:50%; transform:translateY(-50%); color:#94a3b8; }
+.toolbar{display:flex;gap:8px;align-items:center;margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid var(--border);flex-wrap:wrap}
+.search-icon { position:absolute; left:12px; top:50%; transform:translateY(-50%); color:var(--text-muted); }
 .pager{display:flex;align-items:center;gap:10px;margin-top:12px}
 .btn-mini{border:0;border-radius:8px;padding:6px;cursor:pointer;margin-right:6px;display:inline-flex;align-items:center;justify-content:center;}
-.btn-mini.edit{background:#eff6ff;color:#2563eb;border:1px solid #bfdbfe}
-.btn-mini.del{background:#fff1f2;color:#e11d48;border:1px solid #fecdd3}
-.mask{position:fixed;inset:0;background:rgba(0,0,0,.36);display:flex;align-items:center;justify-content:center;z-index:2000}
+.btn-mini.edit{background:rgba(37,99,235,.12);color:#2563eb;border:1px solid rgba(37,99,235,.22)}
+.btn-mini.del{background:rgba(225,29,72,.10);color:#e11d48;border:1px solid rgba(225,29,72,.18)}
+.mask{position:fixed;inset:0;background:var(--overlay);display:flex;align-items:center;justify-content:center;z-index:2000}
 .modal{padding:18px;min-width:400px;}
 .grid{display:grid;grid-template-columns:140px 1fr;gap:10px;align-items:center}
 .grid label{white-space:nowrap;}

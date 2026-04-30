@@ -29,11 +29,40 @@
       </button>
     </div>
 
+    <div v-if="tagCloud.length" class="tag-cloud-wrap">
+      <div class="tag-cloud-head">
+        <div class="tag-cloud-title-wrap">
+          <span class="tag-cloud-title">标签云快捷筛选</span>
+          <span v-if="activeTag" class="tag-selected">已选：{{ activeTag }}</span>
+        </div>
+        <button v-if="activeTag" class="btn btn-ghost btn-clear-tag" @click="clearTagFilter">清空标签</button>
+      </div>
+      <div class="tag-cloud-list">
+        <button
+          v-for="tag in tagCloud"
+          :key="tag.name"
+          class="tag-pill"
+          :class="{ active: activeTag === tag.name }"
+          @click="toggleTag(tag.name)"
+        >
+          <span>{{ tag.name }}</span>
+          <span class="tag-count">{{ tag.count }}</span>
+        </button>
+      </div>
+    </div>
+
     <table class="tbl">
       <thead><tr><th>ID</th><th>姓名</th><th>手机号</th><th>邮箱</th><th>标签</th><th style="width:180px">操作</th></tr></thead>
-      <tbody v-if="list.length">
-        <tr v-for="c in list" :key="c.id">
-          <td>{{ c.id }}</td><td>{{ c.name }}</td><td>{{ c.phone || '-' }}</td><td>{{ c.email || '-' }}</td><td>{{ c.tags || '-' }}</td>
+      <tbody v-if="displayList.length">
+        <tr v-for="c in displayList" :key="c.id">
+          <td>{{ c.id }}</td>
+          <td>
+            <div class="name-cell">
+              <button class="name-link" @click="openDetail(c.id)">{{ c.name || '—' }}</button>
+              <button class="view-detail-btn" @click="openDetail(c.id)">查看详情</button>
+            </div>
+          </td>
+          <td>{{ c.phone || '-' }}</td><td>{{ c.email || '-' }}</td><td>{{ c.tags || '-' }}</td>
           <td>
             <button class="btn-mini edit" @click="openEdit(c)" title="编辑">
               <Edit2 :size="14" />
@@ -48,37 +77,24 @@
         <tr><td colspan="6" style="text-align:center;color:#94a3b8;padding:40px">
           <div style="display:flex;flex-direction:column;align-items:center;gap:12px">
             <Search :size="32" style="color:#cbd5e1" />
-            <span>暂无数据</span>
+            <span>{{ activeTag ? '当前页无匹配客户' : '暂无数据' }}</span>
           </div>
         </td></tr>
       </tbody>
     </table>
 
     <div class="pager">
-      <button class="btn btn-ghost" :disabled="page<=1 || loading" @click="page--;load()">上一页</button>
+      <button class="btn btn-ghost" :disabled="page<=1 || loading" @click="prevPage">上一页</button>
       <span>第 {{ page }} 页 / 共 {{ totalPage }} 页（总数 {{ total }}）</span>
-      <button class="btn btn-ghost" :disabled="page>=totalPage || loading" @click="page++;load()">下一页</button>
+      <button class="btn btn-ghost" :disabled="page>=totalPage || loading" @click="nextPage">下一页</button>
     </div>
   </section>
 
-  <div v-if="showModal" class="mask" @click="closeModal">
-    <div class="modal card" @click.stop>
-      <h4>{{ editingId ? '编辑客户' : '新增客户' }}</h4>
-      <div class="grid">
-        <label>姓名</label><input class="input" v-model.trim="form.name" />
-        <label>手机号</label><input class="input" v-model.trim="form.phone" />
-        <label>邮箱</label><input class="input" v-model.trim="form.email" />
-        <label>性别</label><input class="input" v-model.trim="form.gender" />
-        <label>标签</label><input class="input" v-model.trim="form.tags" />
-        <label>生日</label><input class="input" type="date" v-model="form.birthday" />
-        <label>备注</label><textarea class="input" rows="3" v-model.trim="form.note" style="resize: vertical;"></textarea>
-      </div>
-      <div class="actions">
-        <button class="btn btn-ghost" @click="closeModal">取消</button>
-        <button class="btn btn-primary" :disabled="submitting" @click="onSubmit">{{ submitting ? '提交中...' : (editingId ? '保存' : '创建') }}</button>
-      </div>
-    </div>
-  </div>
+  <CustomerFormModal
+    v-model:visible="formVisible"
+    :editingCustomer="selectedCustomer"
+    @saved="handleSaved"
+  />
 
   <div v-if="showImport" class="mask" @click="closeImport">
     <div class="modal card" style="width:min(1000px,96vw)" @click.stop>
@@ -120,10 +136,14 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { Download, FileUp, Plus, Search, RotateCcw, Edit2, Trash2 } from 'lucide-vue-next'
+import { useRoute, useRouter } from 'vue-router'
 import { useUiStore } from '../../stores/ui'
-import { createCustomer, deleteCustomer, importCustomers, listCustomers, updateCustomer, exportCustomers } from '../../api/customer'
+import { deleteCustomer, importCustomers, listCustomers, exportCustomers } from '../../api/customer'
+import CustomerFormModal from '../../components/customer/CustomerFormModal.vue'
 
 const ui = useUiStore()
+const router = useRouter()
+const route = useRoute()
 type CustomerRow = { name: string; phone?: string; email?: string; gender?: string; tags?: string; note?: string; birthday?: string }
 
 const list = ref<any[]>([])
@@ -131,13 +151,72 @@ const total = ref(0)
 const page = ref(1)
 const size = ref(10)
 const keyword = ref('')
+const activeTag = ref('')
 const loading = ref(false)
-const submitting = ref(false)
 const importing = ref(false)
 const exporting = ref(false)
+const formVisible = ref(false)
+const selectedCustomer = ref<any | null>(null)
 
 const totalPage = computed(() => Math.max(1, Math.ceil(total.value / size.value)))
 const parseErr = (e: any, fallback: string) => e?.response?.data?.message || fallback
+
+const hydrateFromQuery = () => {
+  const keywordQuery = typeof route.query.keyword === 'string' ? route.query.keyword : ''
+  const pageQuery = Number(route.query.page)
+  const sizeQuery = Number(route.query.size)
+  keyword.value = keywordQuery
+  page.value = Number.isFinite(pageQuery) && pageQuery > 0 ? pageQuery : 1
+  size.value = Number.isFinite(sizeQuery) && sizeQuery > 0 ? sizeQuery : 10
+}
+
+const syncQuery = async () => {
+  await router.replace({
+    name: 'customers',
+    query: {
+      ...(keyword.value ? { keyword: keyword.value } : {}),
+      ...(page.value > 1 ? { page: String(page.value) } : {}),
+      ...(size.value !== 10 ? { size: String(size.value) } : {})
+    }
+  })
+}
+
+const normalizeTags = (raw?: string) => {
+  if (!raw) return [] as string[]
+  return raw
+    .split(/[,，]/)
+    .map(t => t.trim())
+    .filter(Boolean)
+}
+
+const tagCloud = computed(() => {
+  const counter = new Map<string, number>()
+  for (const item of list.value) {
+    for (const tag of normalizeTags(item.tags)) {
+      counter.set(tag, (counter.get(tag) || 0) + 1)
+    }
+  }
+  return Array.from(counter.entries())
+    .map(([name, count]) => ({ name, count }))
+    .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, 'zh-CN'))
+})
+
+const displayList = computed(() => {
+  if (!activeTag.value) return list.value
+  return list.value.filter(item => normalizeTags(item.tags).includes(activeTag.value))
+})
+
+const toggleTag = (tag: string) => {
+  activeTag.value = activeTag.value === tag ? '' : tag
+}
+
+const clearTagFilter = () => {
+  activeTag.value = ''
+}
+
+const openDetail = (id: number) => {
+  router.push({ name: 'customerDetail', params: { id } })
+}
 
 const load = async () => {
   try {
@@ -151,52 +230,58 @@ const load = async () => {
     loading.value = false
   }
 }
-const onSearch = () => { page.value = 1; load() }
-const onReset = () => { keyword.value = ''; page.value = 1; load() }
+const onSearch = async () => {
+  page.value = 1
+  await syncQuery()
+  await load()
+}
+const onReset = () => {
+  keyword.value = ''
+  activeTag.value = ''
+  page.value = 1
+  void syncQuery()
+  load()
+}
+
+const prevPage = async () => {
+  if (page.value <= 1 || loading.value) return
+  page.value--
+  await syncQuery()
+  await load()
+}
+
+const nextPage = async () => {
+  if (page.value >= totalPage.value || loading.value) return
+  page.value++
+  await syncQuery()
+  await load()
+}
 
 const onExport = async () => {
+  if (exporting.value) return
   try {
     exporting.value = true
     const res = await exportCustomers({ keyword: keyword.value || undefined })
     const url = window.URL.createObjectURL(new Blob([res.data]))
     const link = document.createElement('a')
     link.href = url
-    link.setAttribute('download', 'customers.xlsx')
+    link.setAttribute('download', '客户档案.xlsx')
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
     window.URL.revokeObjectURL(url)
     ui.toast('导出成功', 'success')
   } catch (e: any) {
-    ui.toast('导出失败，请稍后重试', 'error')
+    ui.toast(parseErr(e, '导出失败，请稍后重试'), 'error')
   } finally {
     exporting.value = false
   }
 }
 
-const showModal = ref(false)
-const editingId = ref<number | null>(null)
-const form = ref<CustomerRow>({ name: '', phone: '', email: '', gender: '', tags: '', note: '', birthday: '' })
-
-const openCreate = () => { editingId.value = null; form.value = { name: '', phone: '', email: '', gender: '', tags: '', note: '', birthday: '' }; showModal.value = true }
-const openEdit = (c: any) => { editingId.value = c.id; form.value = { ...c, birthday: c.birthday || '' }; showModal.value = true }
-const closeModal = () => (showModal.value = false)
-
-const onSubmit = async () => {
-  if (!form.value.name?.trim()) return ui.toast('姓名不能为空', 'error')
-  try {
-    submitting.value = true
-    const payload = { ...form.value }
-    if (editingId.value) await updateCustomer(editingId.value, payload)
-    else await createCustomer(payload)
-    closeModal()
-    await load()
-    ui.toast(editingId.value ? '保存成功' : '创建成功', 'success')
-  } catch (e: any) {
-    ui.toast(parseErr(e, '保存失败'), 'error')
-  } finally {
-    submitting.value = false
-  }
+const openCreate = () => { selectedCustomer.value = null; formVisible.value = true }
+const openEdit = (c: any) => { selectedCustomer.value = c; formVisible.value = true }
+const handleSaved = async () => {
+  await load()
 }
 
 const onDelete = async (id: number) => {
@@ -205,6 +290,7 @@ const onDelete = async (id: number) => {
   try {
     await deleteCustomer(id)
     if (list.value.length === 1 && page.value > 1) page.value--
+    await syncQuery()
     await load()
     ui.toast('删除成功', 'success')
   } catch (e: any) {
@@ -253,20 +339,40 @@ const submitImport = async () => {
   }
 }
 
-onMounted(load)
+onMounted(async () => {
+  hydrateFromQuery()
+  await load()
+})
 </script>
 
 <style scoped>
 .panel{padding:16px}
 .panel-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
-.toolbar{display:flex;gap:8px;align-items:center;margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid #f1f5f9;flex-wrap:wrap}
-.search-icon { position:absolute; left:12px; top:50%; transform:translateY(-50%); color:#94a3b8; }
+.toolbar{display:flex;gap:8px;align-items:center;margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid var(--border);flex-wrap:wrap}
+.tag-cloud-wrap{margin:0 0 14px}
+.tag-cloud-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.tag-cloud-title-wrap{display:flex;align-items:center;gap:8px;min-width:0}
+.tag-cloud-title{font-size:13px;font-weight:600;color:var(--text-muted)}
+.tag-selected{font-size:12px;color:var(--brand);background:rgba(15,118,110,.1);border:1px solid rgba(15,118,110,.2);border-radius:999px;padding:2px 10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:220px}
+.btn-clear-tag{padding:4px 10px;font-size:12px}
+.tag-cloud-list{display:flex;gap:8px;flex-wrap:wrap}
+.tag-pill{border:1px solid rgba(15,118,110,.18);background:rgba(15,118,110,.08);color:var(--brand-dark);border-radius:999px;padding:4px 12px;font-size:12px;display:inline-flex;align-items:center;gap:6px;cursor:pointer;transition:all .2s ease}
+.tag-pill:hover{background:rgba(15,118,110,.14);border-color:rgba(15,118,110,.26)}
+.tag-pill.active{background:linear-gradient(135deg,var(--brand),var(--brand-end));color:#fff;border-color:transparent;box-shadow:0 6px 16px rgba(15,118,110,.25)}
+.tag-count{font-size:11px;opacity:.85}
+.search-icon { position:absolute; left:12px; top:50%; transform:translateY(-50%); color:var(--text-muted); }
 .pager{display:flex;align-items:center;gap:10px;margin-top:12px}
 .btn-mini{border:0;border-radius:8px;padding:6px;cursor:pointer;margin-right:6px;display:inline-flex;align-items:center;justify-content:center}
-.btn-mini.edit{background:#eff6ff;color:#2563eb;border:1px solid #bfdbfe}
-.btn-mini.del{background:#fff1f2;color:#e11d48;border:1px solid #fecdd3}
-.mask{position:fixed;inset:0;background:rgba(0,0,0,.36);display:flex;align-items:center;justify-content:center;z-index:2000}
-.modal{padding:18px}
-.grid{display:grid;grid-template-columns:140px 1fr;gap:10px;align-items:center}
-.actions{margin-top:16px;display:flex;justify-content:flex-end;gap:8px}
+.btn-mini.edit{background:rgba(37,99,235,.12);color:#2563eb;border:1px solid rgba(37,99,235,.22)}
+.btn-mini.del{background:rgba(225,29,72,.10);color:#e11d48;border:1px solid rgba(225,29,72,.18)}
+.name-cell{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.name-link{border:0;background:transparent;color:var(--brand);font-weight:600;cursor:pointer;padding:0;text-align:left}
+.name-link:hover{text-decoration:underline}
+.view-detail-btn{border:1px solid rgba(15,118,110,.18);background:rgba(15,118,110,.08);color:var(--brand-dark);border-radius:999px;padding:3px 10px;font-size:12px;cursor:pointer}
+.view-detail-btn:hover{background:rgba(15,118,110,.14)}
+html.dark .tag-pill{border-color:rgba(20,184,166,.28);background:rgba(20,184,166,.14);color:#7de6d8}
+html.dark .tag-pill:hover{background:rgba(20,184,166,.2);border-color:rgba(45,212,191,.4)}
+html.dark .tag-selected{color:#7de6d8;background:rgba(20,184,166,.16);border-color:rgba(20,184,166,.3)}
+html.dark .view-detail-btn{border-color:rgba(20,184,166,.28);background:rgba(20,184,166,.14);color:#7de6d8}
+html.dark .view-detail-btn:hover{background:rgba(20,184,166,.2)}
 </style>
