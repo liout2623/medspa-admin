@@ -17,8 +17,8 @@ const ui = useUiStore()
 </script>
 
 <style scoped>
-.msg{color:#475569;margin:6px 0 0}
-.mask{position:fixed;inset:0;background:rgba(0,0,0,.36);display:flex;align-items:center;justify-content:center;z-index:3500}
+.msg{color:var(--text-muted);margin:6px 0 0}
+.mask{position:fixed;inset:0;background:var(--overlay);display:flex;align-items:center;justify-content:center;z-index:3500}
 .modal{width:min(420px,92vw);padding:18px}
 .actions{margin-top:16px;display:flex;justify-content:flex-end;gap:8px}
 </style>

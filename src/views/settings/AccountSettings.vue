@@ -19,6 +19,29 @@
       </form>
     </article>
 
+    <article class="card settings-card">
+      <h3>外观偏好</h3>
+      <p class="desc">切换浅色或深色模式，界面会立即同步到全局。</p>
+      <div class="appearance-switch">
+        <button
+          class="appearance-option"
+          :class="{ active: ui.themeMode === 'light' }"
+          @click="ui.setTheme('light')"
+        >
+          <Sun :size="16" />
+          <span>浅色模式</span>
+        </button>
+        <button
+          class="appearance-option"
+          :class="{ active: ui.themeMode === 'dark' }"
+          @click="ui.setTheme('dark')"
+        >
+          <Moon :size="16" />
+          <span>深色模式</span>
+        </button>
+      </div>
+    </article>
+
     <article class="card settings-card danger-card">
       <h3>危险操作</h3>
       <p class="desc">注销账号后将无法恢复，请谨慎操作。</p>
@@ -35,6 +58,7 @@ import { useRouter } from 'vue-router'
 import { useUiStore } from '../../stores/ui'
 import { useAuthStore } from '../../stores/auth'
 import { changePassword, deleteCurrentAccount } from '../../api/auth'
+import { Sun, Moon } from 'lucide-vue-next'
 
 const router = useRouter()
 const ui = useUiStore()
@@ -119,7 +143,7 @@ const onDeleteAccount = async () => {
 <style scoped>
 .settings-page {
   display: grid;
-  grid-template-columns: repeat(2, minmax(280px, 1fr));
+  grid-template-columns: repeat(3, minmax(260px, 1fr));
   gap: 16px;
 }
 
@@ -130,12 +154,12 @@ const onDeleteAccount = async () => {
 h3 {
   margin: 0;
   font-size: 18px;
-  color: #0f172a;
+  color: var(--text-strong);
 }
 
 .desc {
   margin: 8px 0 14px;
-  color: #64748b;
+  color: var(--text-muted);
   font-size: 13px;
 }
 
@@ -145,18 +169,46 @@ h3 {
 }
 
 .form label {
-  color: #334155;
+  color: var(--text);
   font-size: 13px;
 }
 
+.appearance-switch {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.appearance-option {
+  border: 1px solid var(--border);
+  background: var(--bg-subtle);
+  color: var(--text-muted);
+  border-radius: 12px;
+  padding: 12px 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.appearance-option.active {
+  color: #fff;
+  background: linear-gradient(135deg, var(--brand), var(--brand-end));
+  border-color: transparent;
+  box-shadow: 0 8px 18px rgba(15, 118, 110, 0.18);
+}
+
 .danger-card {
-  border-color: #fecdd3;
-  background: linear-gradient(180deg, #fff, #fff7f8);
+  border-color: rgba(244, 63, 94, 0.28);
+  background: linear-gradient(180deg, var(--bg-panel), rgba(244, 63, 94, 0.04));
 }
 
 .btn-danger {
-  border: 1px solid #fda4af;
-  background: #fff1f2;
+  border: 1px solid rgba(244, 63, 94, 0.3);
+  background: rgba(244, 63, 94, 0.08);
   color: #be123c;
   border-radius: 10px;
   padding: 10px 14px;
@@ -165,7 +217,7 @@ h3 {
 }
 
 .btn-danger:hover:not(:disabled) {
-  background: #ffe4e6;
+  background: rgba(244, 63, 94, 0.14);
 }
 
 .btn-danger:disabled {
@@ -177,5 +229,9 @@ h3 {
   .settings-page {
     grid-template-columns: 1fr;
   }
+}
+
+html.dark .danger-card {
+  background: linear-gradient(180deg, var(--bg-panel), rgba(244, 63, 94, 0.06));
 }
 </style>
