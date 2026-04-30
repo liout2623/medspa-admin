@@ -5,6 +5,9 @@ import type { CustomerRequest, CustomerResponse } from '../types/customer'
 export function listCustomers(params: { page: number; size: number; keyword?: string; sort?: string }) {
   return http.get<ApiResponse<PageResponse<CustomerResponse>>>('/customers', { params })
 }
+export function getCustomer(id: number) {
+  return http.get<ApiResponse<CustomerResponse>>(`/customers/${id}`)
+}
 export function createCustomer(data: CustomerRequest) {
   return http.post<ApiResponse<CustomerResponse>>('/customers', data)
 }

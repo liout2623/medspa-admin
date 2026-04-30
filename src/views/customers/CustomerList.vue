@@ -30,11 +30,14 @@
     </div>
 
     <table class="tbl">
-      <thead><tr><th>ID</th><th>姓名</th><th>手机号</th><th>邮箱</th><th>标签</th><th style="width:180px">操作</th></tr></thead>
+      <thead><tr><th>ID</th><th>姓名</th><th>手机号</th><th>邮箱</th><th>标签</th><th style="width:200px">操作</th></tr></thead>
       <tbody v-if="list.length">
         <tr v-for="c in list" :key="c.id">
           <td>{{ c.id }}</td><td>{{ c.name }}</td><td>{{ c.phone || '-' }}</td><td>{{ c.email || '-' }}</td><td>{{ c.tags || '-' }}</td>
           <td>
+            <button class="btn-mini view" @click="router.push(`/customers/${c.id}`)" title="查看详情">
+              <Eye :size="14" />
+            </button>
             <button class="btn-mini edit" @click="openEdit(c)" title="编辑">
               <Edit2 :size="14" />
             </button>
@@ -119,11 +122,13 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { Download, FileUp, Plus, Search, RotateCcw, Edit2, Trash2 } from 'lucide-vue-next'
+import { Download, FileUp, Plus, Search, RotateCcw, Edit2, Trash2, Eye } from 'lucide-vue-next'
 import { useUiStore } from '../../stores/ui'
 import { createCustomer, deleteCustomer, importCustomers, listCustomers, updateCustomer, exportCustomers } from '../../api/customer'
+import { useRouter } from 'vue-router'
 
 const ui = useUiStore()
+const router = useRouter()
 type CustomerRow = { name: string; phone?: string; email?: string; gender?: string; tags?: string; note?: string; birthday?: string }
 
 const list = ref<any[]>([])
@@ -263,6 +268,7 @@ onMounted(load)
 .search-icon { position:absolute; left:12px; top:50%; transform:translateY(-50%); color:#94a3b8; }
 .pager{display:flex;align-items:center;gap:10px;margin-top:12px}
 .btn-mini{border:0;border-radius:8px;padding:6px;cursor:pointer;margin-right:6px;display:inline-flex;align-items:center;justify-content:center}
+.btn-mini.view{background:#f0fdf4;color:#16a34a;border:1px solid #bbf7d0}
 .btn-mini.edit{background:#eff6ff;color:#2563eb;border:1px solid #bfdbfe}
 .btn-mini.del{background:#fff1f2;color:#e11d48;border:1px solid #fecdd3}
 .mask{position:fixed;inset:0;background:rgba(0,0,0,.36);display:flex;align-items:center;justify-content:center;z-index:2000}
