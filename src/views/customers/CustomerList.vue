@@ -64,6 +64,9 @@
           </td>
           <td>{{ c.phone || '-' }}</td><td>{{ c.email || '-' }}</td><td>{{ c.tags || '-' }}</td>
           <td>
+            <button class="btn-mini view" @click="router.push(`/customers/${c.id}`)" title="查看详情">
+              <Eye :size="14" />
+            </button>
             <button class="btn-mini edit" @click="openEdit(c)" title="编辑">
               <Edit2 :size="14" />
             </button>
