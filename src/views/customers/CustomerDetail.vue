@@ -85,6 +85,7 @@ import { ArrowLeft } from 'lucide-vue-next'
 import { useAuthStore } from '../../stores/auth'
 import { useUiStore } from '../../stores/ui'
 import { getCustomer } from '../../api/customer'
+import type { CustomerResponse } from '../../types/customer'
 import HealthRecordPanel from './HealthRecordPanel.vue'
 
 const router = useRouter()
@@ -95,7 +96,7 @@ const ui = useUiStore()
 const currentUser = computed(() => auth.user)
 const customerId = computed(() => Number(route.params.id))
 
-const customer = ref<any>(null)
+const customer = ref<CustomerResponse | null>(null)
 const loading = ref(false)
 
 const parseErr = (e: any, fallback: string) => e?.response?.data?.message || fallback

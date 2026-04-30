@@ -89,15 +89,16 @@ import {
   listHealthRecords,
   updateHealthRecord
 } from '../../api/health-record'
+import type { HealthRecordResponse } from '../../types/health-record'
 
 const props = defineProps<{
   customerId: number
-  currentUser: any
+  currentUser: { id?: number; role?: string } | null
 }>()
 
 const ui = useUiStore()
 
-const records = ref<any[]>([])
+const records = ref<HealthRecordResponse[]>([])
 const total = ref(0)
 const page = ref(1)
 const size = ref(5)
@@ -112,7 +113,7 @@ const formatDate = (d?: string) => {
   return d.slice(0, 10)
 }
 
-const canModify = (r: any) =>
+const canModify = (r: HealthRecordResponse) =>
   props.currentUser?.role === 'ADMIN' || props.currentUser?.id === r.createdById
 
 const load = async () => {
@@ -141,7 +142,7 @@ const openCreate = () => {
   form.value = { recordDate: new Date().toISOString().slice(0, 10), assessment: '', recommendation: '' }
   showModal.value = true
 }
-const openEdit = (r: any) => {
+const openEdit = (r: HealthRecordResponse) => {
   editingId.value = r.id
   form.value = { recordDate: r.recordDate?.slice(0, 10) || '', assessment: r.assessment || '', recommendation: r.recommendation || '' }
   showModal.value = true
