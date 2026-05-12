@@ -43,7 +43,7 @@
     <template v-else-if="customer">
       <header class="card header-card">
         <div class="header-main">
-          <button class="back-btn" @click="goBack">
+          <button class="btn btn-ghost" @click="goBack">
             <ArrowLeft :size="16" />
             返回客户列表
           </button>
@@ -310,24 +310,6 @@ watch(
   min-width: 0;
 }
 
-.back-btn {
-  border: 1px solid var(--border);
-  background: var(--bg-subtle);
-  color: var(--text-strong);
-  border-radius: 999px;
-  padding: 8px 14px;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  cursor: pointer;
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-
-.back-btn:hover {
-  background: var(--bg-hover);
-}
-
 .title-group {
   min-width: 0;
 }
@@ -369,11 +351,6 @@ watch(
   color: var(--text-strong);
 }
 
-.section-tip {
-  color: var(--text-muted);
-  font-size: 12px;
-}
-
 .info-list {
   display: grid;
   gap: 12px;
@@ -385,7 +362,7 @@ watch(
   gap: 14px;
   align-items: start;
   padding: 12px 0;
-  border-bottom: 1px solid var(--border-soft, var(--border));
+  border-bottom: 1px solid var(--border-soft);
 }
 
 .info-row:last-child {
@@ -568,14 +545,10 @@ watch(
 html.dark .tag-chip {
   border-color: rgba(20, 184, 166, 0.3);
   background: rgba(20, 184, 166, 0.14);
-  color: #7de6d8;
-}
-
-html.dark .back-btn {
-  background: rgba(15, 23, 42, 0.82);
+  color: var(--brand-light);
 }
 
 html.dark .placeholder-box {
-  background: rgba(15, 23, 42, 0.58);
+  background: var(--bg-subtle);
 }
 </style>

@@ -17,6 +17,10 @@
           <Users :size="18" />
           <span>客户管理</span>
         </RouterLink>
+        <RouterLink to="/appointments" class="menu-item">
+          <Calendar :size="18" />
+          <span>预约管理</span>
+        </RouterLink>
         <RouterLink to="/services" class="menu-item">
           <Package :size="18" />
           <span>服务项目</span>
@@ -73,6 +77,7 @@ import {
   Leaf,
   LayoutDashboard,
   Users,
+  Calendar,
   Package,
   UserCog,
   Shield,
@@ -104,7 +109,7 @@ const isAdmin = computed(() => auth.user?.role === 'ADMIN')
 const handleLogout = async () => {
   const ok = await ui.confirm('退出登录', '确认要退出登录吗？')
   if (!ok) return
-  auth.logout()
+  await auth.logout()
   router.push('/login')
 }
 </script>

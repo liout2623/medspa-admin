@@ -28,7 +28,7 @@
         <button class="btn btn-primary btn-block" :disabled="loading">
           {{ loading ? '登录中...' : '登录' }}
         </button>
-        <p v-if="err" class="err-text" style="color:#dc2626;font-size:12px;margin-top:8px;">{{ err }}</p>
+        <p v-if="err" class="err-text">{{ err }}</p>
         <div class="toggle-link" @click="toggleMode">没有账号？去注册</div>
       </form>
 
@@ -46,6 +46,16 @@
           <input v-model="regForm.confirmPassword" type="password" class="input" required />
         </div>
         <div class="form-item">
+          <label>验证码 <span class="req">*</span></label>
+          <div class="captcha-row">
+            <input v-model.trim="regForm.captchaCode" class="input captcha-input" placeholder="请输入验证码" required />
+            <div class="captcha-img-wrap" @click="refreshCaptcha" :title="captchaLoading ? '加载中...' : '点击刷新验证码'">
+              <img v-if="captchaImage" :src="captchaImage" alt="验证码" class="captcha-img" />
+              <span v-else class="captcha-placeholder">{{ captchaLoading ? '加载中...' : '点击刷新' }}</span>
+            </div>
+          </div>
+        </div>
+        <div class="form-item">
           <label>显示名 <span class="req">*</span></label>
           <input v-model.trim="regForm.displayName" class="input" required />
         </div>
@@ -61,7 +71,7 @@
         <button class="btn btn-primary btn-block" :disabled="loading">
           {{ loading ? '提交中...' : '立即注册' }}
         </button>
-        <p v-if="err" class="err-text" style="color:#dc2626;font-size:12px;margin-top:8px;">{{ err }}</p>
+        <p v-if="err" class="err-text">{{ err }}</p>
         <div class="toggle-link" @click="toggleMode">已有账号？去登录</div>
       </form>
     </div>
@@ -69,11 +79,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref, onMounted } from 'vue'
+import { computed, reactive, ref, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '../../stores/auth'
 import { useUiStore } from '../../stores/ui'
-import { register } from '../../api/auth'
+import { getCaptcha, register } from '../../api/auth'
 import { Sun, Moon } from 'lucide-vue-next'
 
 const router = useRouter()
@@ -88,6 +98,33 @@ const themeTitle = computed(() => ui.themeMode === 'light' ? '切换至深色模
 
 const loginForm = reactive({ username: '', password: '' })
 
+// 验证码相关状态
+const captchaId = ref('')
+const captchaImage = ref('')
+const captchaLoading = ref(false)
+
+const refreshCaptcha = async () => {
+  captchaLoading.value = true
+  captchaImage.value = ''
+  try {
+    const res = await getCaptcha()
+    captchaId.value = res.data.data.captchaId
+    captchaImage.value = res.data.data.imageBase64
+  } catch {
+    captchaId.value = ''
+    captchaImage.value = ''
+  } finally {
+    captchaLoading.value = false
+  }
+}
+
+// 切换到注册模式时自动加载验证码
+watch(isLoginMode, (val) => {
+  if (!val) {
+    refreshCaptcha()
+  }
+})
+
 // 自动填入从修改密码页面传来的用户名
 onMounted(() => {
   const { username } = route.query
@@ -95,7 +132,8 @@ onMounted(() => {
     loginForm.username = username
   }
 })
-const regForm = reactive({ username: '', password: '', confirmPassword: '', displayName: '', phone: '', occupation: '' })
+
+const regForm = reactive({ username: '', password: '', confirmPassword: '', displayName: '', phone: '', occupation: '', captchaCode: '' })
 
 const toggleMode = () => {
   isLoginMode.value = !isLoginMode.value
@@ -130,6 +168,15 @@ const onRegister = async () => {
     err.value = '两次输入的密码不一致，请检查'
     return
   }
+  if (!captchaId.value) {
+    err.value = '验证码标识不能为空，请刷新验证码'
+    refreshCaptcha()
+    return
+  }
+  if (!regForm.captchaCode) {
+    err.value = '验证码不能为空'
+    return
+  }
   try {
     loading.value = true
     await register({
@@ -137,16 +184,25 @@ const onRegister = async () => {
       password: regForm.password,
       displayName: regForm.displayName,
       phone: regForm.phone,
-      occupation: regForm.occupation
+      occupation: regForm.occupation,
+      captchaId: captchaId.value,
+      captchaCode: regForm.captchaCode
     })
     ui.toast('注册成功，请使用新账号登录', 'success')
     loginForm.username = regForm.username
     loginForm.password = ''
+    regForm.captchaCode = ''
     toggleMode()
   } catch (e: any) {
+    const status = e?.response?.status
     const errorMsg = e?.response?.data?.message || '注册失败，请检查网络或稍后重试'
     err.value = errorMsg
     ui.toast(errorMsg, 'error')
+    // 验证码错误或429频率限制时自动刷新验证码
+    if (status === 400 || status === 429) {
+      regForm.captchaCode = ''
+      refreshCaptcha()
+    }
   } finally {
     loading.value = false
   }
@@ -163,7 +219,8 @@ const onRegister = async () => {
 .icon-wrap{font-size:30px}
 .form-item { margin-bottom: 14px; }
 .form-item label { display: block; margin-bottom: 6px; font-size: 13px; color: var(--text-muted); font-weight:500; }
-.req { color: #e11d48; margin-left:2px; }
+.req { color: var(--danger); margin-left:2px; }
+.err-text { color: var(--toast-error); font-size: 12px; margin-top: 8px; }
 .btn-block { width: 100%; margin-top: 8px; }
 .toggle-link {
   margin-top: 18px;
@@ -179,6 +236,36 @@ const onRegister = async () => {
 }
 .register-body::-webkit-scrollbar { width: 5px; }
 .register-body::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 10px; }
+.captcha-row { display: flex; align-items: center; gap: 10px; }
+.captcha-input { flex: 1; min-width: 0; }
+.captcha-img-wrap {
+  flex-shrink: 0;
+  width: 110px;
+  height: 38px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  overflow: hidden;
+  transition: border-color .2s ease, box-shadow .2s ease;
+}
+.captcha-img-wrap:hover {
+  border-color: var(--brand);
+  box-shadow: 0 2px 8px rgba(15,118,110,.15);
+}
+.captcha-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.captcha-placeholder {
+  font-size: 12px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
 </style>
 
 <style>

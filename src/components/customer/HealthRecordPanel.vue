@@ -1,108 +1,98 @@
 <template>
-  <div class="health-record-panel card">
-    <div class="panel-header">
-      <div class="header-left">
-        <Activity class="icon" :size="20" />
-        <h2>艾灸档案 / 体质记录</h2>
-      </div>
-      <button class="btn btn-primary btn-sm" @click="handleCreate">
-        <Plus :size="16" />
-        新增记录
-      </button>
-    </div>
-
-    <!-- 记录列表区 -->
-    <div class="panel-content" v-loading="loading">
-      <div v-if="records.length === 0 && !loading" class="empty-state">
-        <div class="empty-icon">📝</div>
-        <p>暂无健康记录</p>
+  <div>
+    <div class="card panel">
+      <div class="panel-head">
+        <div class="header-left">
+          <Activity :size="18" style="color:var(--brand)" />
+          <h2>健康档案 / 体质记录</h2>
+        </div>
+        <button class="btn btn-primary" @click="handleCreate">
+          <Plus :size="16" />
+          新增记录
+        </button>
       </div>
 
-      <div v-else class="record-list">
-        <div v-for="record in records" :key="record.id" class="record-card">
-          <div class="record-meta">
-            <span class="record-date">{{ formatDate(record.recordDate) }}</span>
-            <span class="record-author">记录人：{{ record.createdByName }}</span>
-            <span class="record-time">{{ formatTime(record.createdAt) }}</span>
-          </div>
+      <!-- 加载中 -->
+      <div v-if="loading" class="loading-state">
+        <span>加载中...</span>
+      </div>
 
-          <div class="record-body">
-            <div class="record-field" v-if="record.assessment">
-              <h4>体质评估/症状描述</h4>
-              <p>{{ record.assessment }}</p>
-            </div>
-            <div class="record-field" v-if="record.recommendation">
-              <h4>艾灸建议</h4>
-              <p>{{ record.recommendation }}</p>
-            </div>
-          </div>
+      <!-- 记录列表区 -->
+      <template v-else>
+        <div v-if="records.length === 0" class="empty-state">
+          <div class="empty-icon">📝</div>
+          <p>暂无健康记录</p>
+        </div>
 
-          <div class="record-actions" v-if="canEditOrDelete(record.createdBy)">
-            <button class="btn btn-ghost btn-icon" title="编辑" @click="handleEdit(record)">
-              <Edit2 :size="14" />
-            </button>
-            <button class="btn btn-ghost btn-icon danger" title="删除" @click="handleDelete(record)">
-              <Trash2 :size="14" />
-            </button>
+        <div v-else class="record-list">
+          <div v-for="record in records" :key="record.id" class="record-item">
+            <div class="record-meta">
+              <span class="record-date">{{ formatDate(record.recordDate) }}</span>
+              <span class="record-author">记录人：{{ record.createdByName }}</span>
+              <span class="record-time">{{ formatTime(record.createdAt) }}</span>
+            </div>
+
+            <div class="record-body">
+              <div class="record-field" v-if="record.assessment">
+                <h4>体质评估 / 症状描述</h4>
+                <p>{{ record.assessment }}</p>
+              </div>
+              <div class="record-field" v-if="record.recommendation">
+                <h4>艾灸建议</h4>
+                <p>{{ record.recommendation }}</p>
+              </div>
+            </div>
+
+            <div class="record-actions" v-if="canEditOrDelete(record.createdBy)">
+              <button class="btn-mini edit" title="编辑" @click="handleEdit(record)">
+                <Edit2 :size="14" />
+              </button>
+              <button class="btn-mini del" title="删除" @click="handleDelete(record)">
+                <Trash2 :size="14" />
+              </button>
+            </div>
           </div>
         </div>
-      </div>
 
-      <!-- 分页控件 -->
-      <div v-if="total > 0" class="pagination">
-        <button
-          class="btn btn-ghost btn-icon"
-          :disabled="currentPage === 1"
-          @click="changePage(currentPage - 1)"
-        >
-          <ChevronLeft :size="16" />
-        </button>
-        <span class="page-info">第 {{ currentPage }} 页 / 共 {{ totalPages }} 页</span>
-        <button
-          class="btn btn-ghost btn-icon"
-          :disabled="currentPage >= totalPages"
-          @click="changePage(currentPage + 1)"
-        >
-          <ChevronRight :size="16" />
-        </button>
-      </div>
+        <!-- 分页控件 -->
+        <div v-if="total > 0" class="pager">
+          <button class="btn btn-ghost" :disabled="currentPage === 1" @click="changePage(currentPage - 1)">上一页</button>
+          <span>第 {{ currentPage }} 页 / 共 {{ totalPages }} 页</span>
+          <button class="btn btn-ghost" :disabled="currentPage >= totalPages" @click="changePage(currentPage + 1)">下一页</button>
+        </div>
+      </template>
     </div>
 
     <!-- 新增/编辑弹窗 -->
-    <div v-if="modalVisible" class="modal-mask" @click.self="closeModal">
-      <div class="modal">
-        <div class="modal-header">
-          <h3>{{ editingId ? '编辑记录' : '新增记录' }}</h3>
-          <button class="close-btn" @click="closeModal">
-            <X :size="20" />
-          </button>
-        </div>
-        <div class="modal-body">
-          <div class="form-group">
+    <div v-if="modalVisible" class="mask" @click.self="closeModal">
+      <div class="modal card" @click.stop>
+        <h4>{{ editingId ? '编辑记录' : '新增记录' }}</h4>
+        <div class="form-fields">
+          <div class="field-group">
             <label>记录日期</label>
-            <input type="date" v-model="formData.recordDate" class="form-input" />
+            <input type="date" v-model="formData.recordDate" class="input" />
           </div>
-          <div class="form-group">
+          <div class="field-group">
             <label>体质评估 / 症状描述</label>
             <textarea
               v-model="formData.assessment"
-              class="form-input textarea"
-              rows="4"
+              rows="3"
+              class="input"
               placeholder="请输入体质评估或症状描述..."
             ></textarea>
           </div>
-          <div class="form-group">
+          <div class="field-group">
             <label>艾灸建议</label>
             <textarea
               v-model="formData.recommendation"
-              class="form-input textarea"
-              rows="4"
+              rows="3"
+              class="input"
               placeholder="请输入艾灸建议..."
             ></textarea>
           </div>
-          <p class="form-hint" v-if="formError">{{ formError }}</p>
         </div>
-        <div class="modal-footer">
+        <p v-if="formError" class="form-error">{{ formError }}</p>
+        <div class="actions">
           <button class="btn btn-ghost" @click="closeModal">取消</button>
           <button class="btn btn-primary" :disabled="submitting" @click="submitForm">
             {{ submitting ? '保存中...' : '保存' }}
@@ -115,9 +105,9 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { Activity, Plus, Edit2, Trash2, ChevronLeft, ChevronRight, X } from 'lucide-vue-next'
-import { listHealthRecords, createHealthRecord, updateHealthRecord, deleteHealthRecord } from '../../api/customer'
-import type { HealthRecordResponse, HealthRecordRequest } from '../../api/customer'
+import { Activity, Plus, Edit2, Trash2 } from 'lucide-vue-next'
+import { listHealthRecords, createHealthRecord, updateHealthRecord, deleteHealthRecord } from '../../api/health-record'
+import type { HealthRecordResponse, HealthRecordRequest } from '../../types/health-record'
 import { useAuthStore } from '../../stores/auth'
 import { useUiStore } from '../../stores/ui'
 
@@ -225,7 +215,7 @@ const handleEdit = (record: HealthRecordResponse) => {
 const handleDelete = async (record: HealthRecordResponse) => {
   const confirmed = await uiStore.confirm('删除确认', '确定要删除这条记录吗？')
   if (!confirmed) return
-  
+
   try {
     const res = await deleteHealthRecord(props.customerId, record.id)
     if (res.data?.success) {
@@ -249,17 +239,15 @@ const closeModal = () => {
 }
 
 const submitForm = async () => {
-  // Frontend validation: At least one of assessment or recommendation is filled
   const hasAssessment = formData.value.assessment?.trim()
   const hasRecommendation = formData.value.recommendation?.trim()
-  
+
   if (!hasAssessment && !hasRecommendation) {
     uiStore.toast('评估或建议至少填写一项', 'error')
     formError.value = '体质评估或艾灸建议至少填写一项'
     return
   }
 
-  // Use today if recordDate is missing somehow
   if (!formData.value.recordDate) {
     formData.value.recordDate = getTodayDateString()
   }
@@ -279,7 +267,7 @@ const submitForm = async () => {
       uiStore.toast(editingId.value ? '更新成功' : '新增成功', 'success')
       closeModal()
       if (!editingId.value) {
-        currentPage.value = 1 // Go to first page on create
+        currentPage.value = 1
       }
       fetchRecords()
     }
@@ -302,293 +290,153 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.health-record-panel {
-  margin-top: var(--spacing-4);
-  background-color: var(--surface-100);
-}
-
-.panel-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: var(--spacing-4) var(--spacing-6);
-  border-bottom: 1px solid var(--border-color);
-}
-
 .header-left {
   display: flex;
   align-items: center;
-  gap: var(--spacing-2);
+  gap: 8px;
 }
 
 .header-left h2 {
   margin: 0;
-  font-size: var(--font-size-lg);
+  font-size: 16px;
   font-weight: 600;
-  color: var(--text-100);
+  color: var(--text-strong);
 }
 
-.header-left .icon {
-  color: var(--primary-500);
+/* Loading */
+.loading-state {
+  text-align: center;
+  padding: 40px 0;
+  color: var(--text-muted);
+  font-size: 0.9rem;
 }
 
-.panel-content {
-  padding: var(--spacing-4) var(--spacing-6);
-  position: relative;
-  min-height: 150px;
-}
-
+/* Empty */
 .empty-state {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: var(--spacing-8) 0;
-  color: var(--text-300);
+  padding: 40px 0;
+  color: var(--text-muted);
 }
 
 .empty-icon {
   font-size: 2rem;
-  margin-bottom: var(--spacing-2);
+  margin-bottom: 8px;
 }
 
+.empty-state p {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+/* Record list */
 .record-list {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-4);
+  gap: 12px;
 }
 
-.record-card {
+.record-item {
   position: relative;
-  background-color: var(--surface-200);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
-  padding: var(--spacing-4);
-  transition: all 0.2s ease;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px 16px;
+  transition: border-color 0.2s ease;
 }
 
-.record-card:hover {
-  border-color: var(--primary-300);
+.record-item:hover {
+  border-color: var(--border-strong);
 }
 
 .record-meta {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: var(--spacing-3);
-  margin-bottom: var(--spacing-3);
-  font-size: var(--font-size-sm);
-  color: var(--text-300);
+  gap: 10px;
+  margin-bottom: 10px;
+  font-size: 0.8rem;
+  color: var(--text-muted);
 }
 
 .record-date {
   font-weight: 600;
-  color: var(--primary-600);
-  background-color: var(--primary-50);
+  color: var(--brand-dark);
+  background: var(--brand-bg);
   padding: 2px 8px;
-  border-radius: var(--radius-sm);
+  border-radius: 6px;
 }
 
-[data-theme="dark"] .record-date {
-  background-color: var(--primary-900);
-  color: var(--primary-300);
+.record-author,
+.record-time {
+  color: var(--text-muted);
 }
 
 .record-body {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-3);
+  gap: 10px;
 }
 
 .record-field h4 {
-  margin: 0 0 var(--spacing-1) 0;
-  font-size: var(--font-size-sm);
-  color: var(--text-200);
+  margin: 0 0 4px 0;
+  font-size: 0.8rem;
+  color: var(--text-muted);
   font-weight: 600;
 }
 
 .record-field p {
   margin: 0;
-  font-size: var(--font-size-base);
-  color: var(--text-100);
-  line-height: 1.5;
+  font-size: 0.9rem;
+  color: var(--text);
+  line-height: 1.6;
   white-space: pre-wrap;
 }
 
 .record-actions {
   position: absolute;
-  top: var(--spacing-4);
-  right: var(--spacing-4);
+  top: 14px;
+  right: 16px;
   display: flex;
-  gap: var(--spacing-1);
+  gap: 4px;
 }
 
-.btn-icon {
-  padding: var(--spacing-1);
-  color: var(--text-300);
-}
+/* Pager — inherit from global */
 
-.btn-icon:hover {
-  background-color: var(--surface-300);
-  color: var(--text-100);
-}
+/* Modal */
+.mask{position:fixed;inset:0;background:var(--overlay);display:flex;align-items:center;justify-content:center;z-index:2000}
+.modal{width:min(520px,92vw);padding:18px}
 
-.btn-icon.danger:hover {
-  color: var(--danger-500);
-  background-color: var(--danger-50);
-}
-
-[data-theme="dark"] .btn-icon.danger:hover {
-  background-color: rgba(239, 68, 68, 0.1);
-}
-
-/* 分页控件 */
-.pagination {
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  gap: var(--spacing-4);
-  margin-top: var(--spacing-6);
-  padding-top: var(--spacing-4);
-  border-top: 1px solid var(--border-color);
-}
-
-.page-info {
-  font-size: var(--font-size-sm);
-  color: var(--text-300);
-}
-
-/* 弹窗样式 */
-.modal-mask {
-  position: fixed;
-  inset: 0;
-  background-color: var(--overlay-bg, rgba(0, 0, 0, 0.5));
-  backdrop-filter: blur(2px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-
-.modal {
-  background-color: var(--surface-100);
-  border-radius: var(--radius-lg);
-  width: 90%;
-  max-width: 500px;
-  box-shadow: var(--shadow-xl);
+.form-fields {
   display: flex;
   flex-direction: column;
-  overflow: hidden;
-  animation: modal-enter 0.2s ease-out;
+  gap: 14px;
+  margin-top: 14px;
 }
 
-@keyframes modal-enter {
-  from {
-    opacity: 0;
-    transform: scale(0.95) translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1) translateY(0);
-  }
-}
-
-.modal-header {
-  padding: var(--spacing-4) var(--spacing-6);
-  border-bottom: 1px solid var(--border-color);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.modal-header h3 {
-  margin: 0;
-  font-size: var(--font-size-lg);
-  font-weight: 600;
-  color: var(--text-100);
-}
-
-.close-btn {
-  background: none;
-  border: none;
-  color: var(--text-300);
-  cursor: pointer;
-  padding: var(--spacing-1);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--radius-sm);
-  transition: all 0.2s;
-}
-
-.close-btn:hover {
-  background-color: var(--surface-200);
-  color: var(--text-100);
-}
-
-.modal-body {
-  padding: var(--spacing-6);
-  flex: 1;
-  overflow-y: auto;
+.field-group {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-4);
+  gap: 6px;
 }
 
-.form-group {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-2);
-}
-
-.form-group label {
-  font-size: var(--font-size-sm);
+.field-group label {
+  font-size: 0.85rem;
   font-weight: 500;
-  color: var(--text-200);
+  color: var(--text-muted);
 }
 
-.form-input {
-  width: 100%;
-  padding: var(--spacing-2) var(--spacing-3);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
-  background-color: var(--surface-100);
-  color: var(--text-100);
-  font-size: var(--font-size-base);
-  transition: all 0.2s;
+.form-error {
+  color: var(--toast-error);
+  font-size: 0.85rem;
+  margin: 8px 0 0;
 }
 
-.form-input:focus {
-  outline: none;
-  border-color: var(--primary-500);
-  box-shadow: 0 0 0 2px var(--primary-100);
-}
-
-[data-theme="dark"] .form-input:focus {
-  box-shadow: 0 0 0 2px var(--primary-900);
-}
-
-.textarea {
-  resize: vertical;
-  min-height: 80px;
-}
-
-.form-hint {
-  color: var(--danger-500);
-  font-size: var(--font-size-sm);
-  margin: 0;
-}
-
-.modal-footer {
-  padding: var(--spacing-4) var(--spacing-6);
-  border-top: 1px solid var(--border-color);
-  display: flex;
-  justify-content: flex-end;
-  gap: var(--spacing-3);
-  background-color: var(--surface-50);
-}
-
-.custom-directives {
-  /* This ensures the v-loading directive (if implemented globally) has something to anchor to */
+/* Dark mode */
+html.dark .record-date {
+  color: var(--brand-light);
+  background: var(--brand-bg);
 }
 </style>

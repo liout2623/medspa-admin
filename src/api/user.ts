@@ -18,3 +18,9 @@ export function deleteUser(id: number) {
 export function exportUsers(params: { keyword?: string; role?: string; active?: boolean }) {
   return http.get('/users/export', { params, responseType: 'blob' })
 }
+
+export function listTherapists() {
+  return http.get<ApiResponse<PageResponse<UserResponse>>>('/users', {
+    params: { page: 1, size: 100, active: true }
+  })
+}

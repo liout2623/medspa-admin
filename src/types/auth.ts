@@ -1,9 +1,16 @@
+export interface CaptchaResponse {
+  captchaId: string
+  imageBase64: string
+}
+
 export interface RegisterRequest {
   username: string
-  password?: string
-  displayName?: string
+  password: string
+  displayName: string
   phone?: string
   occupation?: string
+  captchaId: string
+  captchaCode: string
 }
 
 export interface UserResponse {
@@ -14,9 +21,4 @@ export interface UserResponse {
   phone?: string
   occupation?: string
   active: boolean
-}
-
-export interface LoginResponse {
-  token: string
-  user: UserResponse
 }

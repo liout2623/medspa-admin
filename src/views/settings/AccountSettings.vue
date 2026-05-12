@@ -44,16 +44,40 @@
 
     <article class="card settings-card danger-card">
       <h3>危险操作</h3>
-      <p class="desc">注销账号后将无法恢复，请谨慎操作。</p>
-      <button class="btn-danger" :disabled="deletingAccount" @click="onDeleteAccount">
-        {{ deletingAccount ? '处理中...' : '注销账号' }}
+      <p class="desc">注销账号后将无法恢复，此操作不可逆。</p>
+      <button class="btn-danger" @click="onDeleteAccount">
+        注销账号
       </button>
     </article>
+
+    <!-- 注销账号 — 密码确认弹窗 -->
+    <div v-if="deleteModalVisible" class="mask" @click="closeDeleteModal">
+      <div class="modal card" @click.stop>
+        <h4>请输入当前密码</h4>
+        <p class="modal-desc">为确认是你本人操作，请输入当前账号密码。</p>
+        <input
+          ref="deletePasswordRef"
+          v-model="deletePassword"
+          type="password"
+          class="input modal-input"
+          placeholder="请输入当前密码"
+          autocomplete="current-password"
+          @keyup.enter="onConfirmDelete"
+        />
+        <p v-if="deleteError" class="modal-error">{{ deleteError }}</p>
+        <div class="modal-actions">
+          <button class="btn btn-ghost" :disabled="deletingAccount" @click="closeDeleteModal">取消</button>
+          <button class="btn btn-danger-solid" :disabled="deletingAccount || !deletePassword" @click="onConfirmDelete">
+            {{ deletingAccount ? '处理中...' : '确认注销' }}
+          </button>
+        </div>
+      </div>
+    </div>
   </section>
 </template>
 
 <script setup lang="ts">
-import { reactive, ref } from 'vue'
+import { reactive, ref, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUiStore } from '../../stores/ui'
 import { useAuthStore } from '../../stores/auth'
@@ -72,6 +96,10 @@ const passwordForm = reactive({
 
 const changingPassword = ref(false)
 const deletingAccount = ref(false)
+const deleteModalVisible = ref(false)
+const deletePassword = ref('')
+const deleteError = ref('')
+const deletePasswordRef = ref<HTMLInputElement | null>(null)
 
 const parseErr = (e: any, fallback: string) => {
   if (e?.response?.status === 403) return '无权限执行该操作'
@@ -108,7 +136,7 @@ const onChangePassword = async () => {
     ui.toast('密码修改成功', 'success')
     // 密码修改成功后，跳转到登录页并填入用户名
     const username = auth.user?.username || ''
-    auth.logout()
+    await auth.logout()
     setTimeout(() => {
       router.push({ path: '/login', query: { username } })
     }, 800)
@@ -120,20 +148,39 @@ const onChangePassword = async () => {
 }
 
 const onDeleteAccount = async () => {
-  const firstConfirm = await ui.confirm('确认注销账号', '该操作不可逆，确认要继续吗？')
-  if (!firstConfirm) return
+  const confirmed = await ui.confirm('确认注销账号', '该操作不可逆，确认要继续吗？')
+  if (!confirmed) return
+  // 打开密码输入弹窗
+  deletePassword.value = ''
+  deleteError.value = ''
+  deleteModalVisible.value = true
+  await nextTick()
+  deletePasswordRef.value?.focus()
+}
 
-  const secondConfirm = await ui.confirm('二次确认', '请再次确认注销账号，注销后将立即退出系统。')
-  if (!secondConfirm) return
+const closeDeleteModal = () => {
+  if (deletingAccount.value) return
+  deleteModalVisible.value = false
+  deletePassword.value = ''
+  deleteError.value = ''
+}
 
+const onConfirmDelete = async () => {
+  if (!deletePassword.value) {
+    deleteError.value = '请输入当前密码'
+    return
+  }
   try {
     deletingAccount.value = true
-    await deleteCurrentAccount()
-    auth.logout()
+    deleteError.value = ''
+    await deleteCurrentAccount({ currentPassword: deletePassword.value })
+    deleteModalVisible.value = false
+    await auth.logout()
     ui.toast('账号已注销', 'success')
     router.push('/login')
   } catch (e: any) {
-    ui.toast(parseErr(e, '注销失败，请稍后重试'), 'error')
+    // 显示后端返回的错误信息，保留弹窗让用户重试
+    deleteError.value = parseErr(e, '注销失败，请稍后重试')
   } finally {
     deletingAccount.value = false
   }
@@ -202,18 +249,19 @@ h3 {
 }
 
 .danger-card {
-  border-color: rgba(244, 63, 94, 0.28);
-  background: linear-gradient(180deg, var(--bg-panel), rgba(244, 63, 94, 0.04));
+  border-color: var(--danger-border);
+  background: linear-gradient(180deg, var(--bg-panel), var(--danger-bg));
 }
 
 .btn-danger {
-  border: 1px solid rgba(244, 63, 94, 0.3);
-  background: rgba(244, 63, 94, 0.08);
-  color: #be123c;
+  border: 1px solid var(--danger-border);
+  background: var(--danger-bg);
+  color: var(--danger);
   border-radius: 10px;
   padding: 10px 14px;
   cursor: pointer;
   font-weight: 600;
+  transition: all 0.2s ease;
 }
 
 .btn-danger:hover:not(:disabled) {
@@ -225,6 +273,72 @@ h3 {
   cursor: not-allowed;
 }
 
+/* 密码确认弹窗 */
+.mask {
+  position: fixed;
+  inset: 0;
+  background: var(--overlay);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 3500;
+}
+
+.modal {
+  width: min(420px, 92vw);
+  padding: 20px;
+}
+
+.modal h4 {
+  margin: 0;
+  font-size: 17px;
+  color: var(--text-strong);
+}
+
+.modal-desc {
+  margin: 6px 0 14px;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.modal-input {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.modal-error {
+  margin: 8px 0 0;
+  color: var(--danger);
+  font-size: 13px;
+}
+
+.modal-actions {
+  margin-top: 16px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.btn-danger-solid {
+  background: var(--danger);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 10px 16px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: opacity 0.2s ease;
+}
+
+.btn-danger-solid:hover:not(:disabled) {
+  opacity: 0.88;
+}
+
+.btn-danger-solid:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 @media (max-width: 980px) {
   .settings-page {
     grid-template-columns: 1fr;
@@ -232,6 +346,12 @@ h3 {
 }
 
 html.dark .danger-card {
-  background: linear-gradient(180deg, var(--bg-panel), rgba(244, 63, 94, 0.06));
+  background: linear-gradient(180deg, var(--bg-panel), var(--danger-bg));
+}
+html.dark .btn-danger:hover:not(:disabled) {
+  background: rgba(244, 63, 94, 0.2);
+}
+html.dark .btn-danger-solid:hover:not(:disabled) {
+  opacity: 0.82;
 }
 </style>

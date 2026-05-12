@@ -1,6 +1,7 @@
 :root{
   --brand:#0f766e;
   --brand-dark:#115e59;
+  --brand-light:#5eead4;
   --brand-end:#0d9488;
   --bg:#f8fafc;
   --bg-soft:#ffffff;
@@ -12,6 +13,7 @@
   --text-muted:#64748b;
   --border:#dbe5e7;
   --border-strong:#cbd5e1;
+  --border-soft:rgba(148,163,184,.14);
   --shadow:0 4px 20px rgba(0, 0, 0, 0.02), 0 1px 3px rgba(0, 0, 0, 0.01);
   --shadow-lg:0 12px 30px rgba(15, 118, 110, 0.12);
   --input-bg:#f8fafc;
@@ -25,12 +27,17 @@
   --toast-success:#059669;
   --toast-error:#dc2626;
   --toast-info:#0ea5e9;
+  --danger:#e11d48;
+  --danger-bg:rgba(244,63,94,.08);
+  --danger-border:rgba(244,63,94,.3);
+  --brand-bg:rgba(15,118,110,.08);
   color-scheme: light;
 }
 
 html.dark{
   --brand:#14b8a6;
   --brand-dark:#0f766e;
+  --brand-light:#7de6d8;
   --brand-end:#2dd4bf;
   --bg:#0f172a;
   --bg-soft:#111827;
@@ -42,6 +49,7 @@ html.dark{
   --text-muted:#94a3b8;
   --border:#334155;
   --border-strong:#475569;
+  --border-soft:rgba(148,163,184,.1);
   --shadow:0 18px 40px rgba(0,0,0,.35);
   --shadow-lg:0 24px 48px rgba(0,0,0,.45);
   --input-bg:#0f172a;
@@ -49,6 +57,10 @@ html.dark{
   --table-head:#1f2937;
   --table-hover:#0f172a;
   --overlay:rgba(2,6,23,.68);
+  --danger:#fda4af;
+  --danger-bg:rgba(244,63,94,.14);
+  --danger-border:rgba(244,63,94,.36);
+  --brand-bg:rgba(20,184,166,.14);
   --login-bg-start:#050816;
   --login-bg-mid:#0f172a;
   --login-bg-end:#134e4a;
@@ -178,8 +190,9 @@ html.dark .badge-off{background:rgba(248,113,113,.18);color:#fca5a5}
 
 /* Tiny action buttons */
 .btn-mini{
-  border:0;border-radius:8px;padding:6px 11px;
+  border:0;border-radius:8px;padding:6px;
   font-size:.8rem;cursor:pointer;margin-right:6px;
+  display:inline-flex;align-items:center;justify-content:center;
 }
 .btn-mini.edit{background:rgba(59,130,246,.12);color:#2563eb;border:1px solid rgba(59,130,246,.28)}
 .btn-mini.del{background:rgba(244,63,94,.12);color:#e11d48;border:1px solid rgba(244,63,94,.24)}

@@ -1,29 +1,32 @@
 import { defineStore } from 'pinia'
-import { login } from '../api/auth'
-import { getToken, setToken, clearToken, getUser, setUser, clearUser } from '../utils/token'
+import { login, logout as logoutApi } from '../api/auth'
+import { getUser, setUser, clearUser } from '../utils/token'
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({
-    token: '',
     user: null as any
   }),
+  getters: {
+    isAuthenticated: (state) => !!state.user
+  },
   actions: {
     init() {
-      this.token = getToken()
       this.user = getUser()
     },
     async doLogin(payload: { username: string; password: string }) {
       const res = await login(payload)
-      const data = res.data.data
-      this.token = data.token
-      this.user = data.user
-      setToken(data.token)
-      setUser(data.user)
+      // Token 由后端写入 HttpOnly Cookie，前端仅保存用户信息
+      const user = res.data.data
+      this.user = user
+      setUser(user)
     },
-    logout() {
-      this.token = ''
+    async logout() {
+      try {
+        await logoutApi()
+      } catch {
+        // 即使后端 logout 失败，也清除前端状态（Cookie 自然过期）
+      }
       this.user = null
-      clearToken()
       clearUser()
     }
   }

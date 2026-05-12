@@ -1,0 +1,42 @@
+{
+  "hero": {
+    "title": "Ancient Moxibustion, Modern Vitality",
+    "subtitle": "Professional Moxibustion Therapy · Personalized Wellness Plans · Millennia-old TCM Wisdom",
+    "cta": "Explore Our Services"
+  },
+  "culture": {
+    "title": "What is Moxibustion?",
+    "content": "Moxibustion is a key component of Traditional Chinese Medicine (TCM). It involves burning moxa (dried mugwort) near specific acupoints to warm meridians, dispel cold, and invigorate the body's vital energy (Qi). Recorded as early as the Huangdi Neijing, moxibustion has been proven by modern research to improve circulation, boost immunity, and relieve chronic pain. Our clinic upholds classical techniques and provides personalized treatment plans for every guest."
+  },
+  "services": {
+    "title": "Our Services"
+  },
+  "process": {
+    "title": "Treatment Process",
+    "step1": {
+      "title": "Book Online/Phone",
+      "desc": "Choose a convenient time and service. Our staff will confirm your appointment."
+    },
+    "step2": {
+      "title": "In-Clinic Assessment",
+      "desc": "A licensed therapist will conduct a one-on-one consultation to understand your needs."
+    },
+    "step3": {
+      "title": "Moxibustion Therapy",
+      "desc": "Using premium moxa and precise techniques, sessions typically last 45–90 minutes."
+    },
+    "step4": {
+      "title": "Aftercare Advice",
+      "desc": "Receive tailored diet, lifestyle, and follow-up moxibustion recommendations based on your constitution."
+    }
+  },
+  "contact": {
+    "title": "Contact Us",
+    "address": "No.123 Wensan Road, West Lake District, Hangzhou, China",
+    "phone": "0571-8888 8888",
+    "hours": "Hours: Mon–Sun 8:00–21:00"
+  },
+  "footer": {
+    "copyright": "© 2026 TCM Moxibustion Clinic. All rights reserved."
+  }
+}

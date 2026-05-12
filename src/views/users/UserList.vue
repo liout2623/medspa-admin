@@ -61,7 +61,7 @@
         </tr>
       </tbody>
       <tbody v-else>
-        <tr><td :colspan="isAdmin ? 7 : 6" style="text-align:center;color:#94a3b8;padding:28px">暂无数据</td></tr>
+        <tr><td :colspan="isAdmin ? 7 : 6" style="text-align:center;color:var(--text-muted);padding:28px">暂无数据</td></tr>
       </tbody>
     </table>
 
@@ -107,12 +107,14 @@ import { Download, Plus, Edit2, Trash2, Search } from 'lucide-vue-next'
 import { useUiStore } from '../../stores/ui'
 import { useAuthStore } from '../../stores/auth'
 import { createUser, deleteUser, listUsers, updateUser, exportUsers } from '../../api/user'
+import type { UserResponse } from '../../types/auth'
+import type { UserForm, UserUpsertRequest } from '../../types/user'
 
 const ui = useUiStore()
 const authStore = useAuthStore()
 const isAdmin = computed(() => authStore.user?.role === 'ADMIN')
 
-const list = ref<any[]>([])
+const list = ref<UserResponse[]>([])
 const total = ref(0)
 const page = ref(1)
 const size = ref(10)
@@ -155,7 +157,7 @@ const onReset = () => { keyword.value = ''; role.value = ''; activeText.value = 
 
 const showModal = ref(false)
 const editingId = ref<number | null>(null)
-const form = ref<any>({
+const form = ref<UserForm>({
   username: '',
   password: '',
   displayName: '',
@@ -170,10 +172,10 @@ const openCreate = () => {
     return
   }
   editingId.value = null
-  form.value = { username: '', password: '', displayName: '', role: 'STAFF', phone: '', activeText: 'true' }
+  form.value = { username: '', password: '', displayName: '', role: 'STAFF', phone: '', activeText: 'true' } as UserForm
   showModal.value = true
 }
-const openEdit = (u: any) => {
+const openEdit = (u: UserResponse) => {
   if (!isAdmin.value) {
     ui.toast('无权限执行该操作', 'error')
     return
@@ -202,7 +204,7 @@ const onSubmit = async () => {
 
   try {
     submitting.value = true
-    const payload: any = {
+    const payload: UserUpsertRequest = {
       username: form.value.username.trim(),
       role: form.value.role,
       displayName: form.value.displayName.trim(),
@@ -276,14 +278,9 @@ onMounted(load)
 </script>
 
 <style scoped>
-.panel{padding:16px}
 .panel-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
 .toolbar{display:flex;gap:8px;align-items:center;margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid var(--border);flex-wrap:wrap}
 .search-icon { position:absolute; left:12px; top:50%; transform:translateY(-50%); color:var(--text-muted); }
-.pager{display:flex;align-items:center;gap:10px;margin-top:12px}
-.btn-mini{border:0;border-radius:8px;padding:6px;cursor:pointer;margin-right:6px;display:inline-flex;align-items:center;justify-content:center;}
-.btn-mini.edit{background:rgba(37,99,235,.12);color:#2563eb;border:1px solid rgba(37,99,235,.22)}
-.btn-mini.del{background:rgba(225,29,72,.10);color:#e11d48;border:1px solid rgba(225,29,72,.18)}
 .mask{position:fixed;inset:0;background:var(--overlay);display:flex;align-items:center;justify-content:center;z-index:2000}
 .modal{padding:18px;min-width:400px;}
 .grid{display:grid;grid-template-columns:140px 1fr;gap:10px;align-items:center}
