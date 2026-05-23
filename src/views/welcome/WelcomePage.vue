@@ -125,10 +125,7 @@
             </div>
           </div>
           <div class="contact-map card">
-            <div class="map-placeholder">
-              <Map :size="48" />
-              <span>Map Placeholder</span>
-            </div>
+            <div ref="mapContainer" class="map-container"></div>
           </div>
         </div>
       </div>
@@ -151,13 +148,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount, markRaw } from 'vue'
+import { ref, onMounted, onBeforeUnmount, markRaw, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
   ChevronDown, Globe, Leaf, Flame, Clock,
-  ClipboardCheck, MapPin, Phone, Map,
+  ClipboardCheck, MapPin, Phone,
   AlertCircle, PackageOpen, Calendar, Heart
 } from 'lucide-vue-next'
+import L from 'leaflet'
+import 'leaflet/dist/leaflet.css'
 import { listServices, type ServiceResponse } from '../../api/service'
 import CozeChat from '../../components/coze/CozeChat.vue'
 
@@ -203,6 +202,57 @@ const processSteps = [
   { icon: markRaw(Heart), titleKey: 'process.step4.title', descKey: 'process.step4.desc' }
 ]
 
+/* ── Map ── */
+const mapContainer = ref<HTMLElement | null>(null)
+let mapInstance: L.Map | null = null
+
+function initMap() {
+  if (!mapContainer.value) return
+
+  // 杭州城市学院坐标 (WGS-84)
+  const lat = 30.3249
+  const lng = 120.1493
+
+  mapInstance = L.map(mapContainer.value, {
+    center: [lat, lng],
+    zoom: 15,
+    scrollWheelZoom: false,
+    zoomControl: true,
+    attributionControl: false,
+  })
+
+  // 使用高德地图瓦片（国内访问稳定）
+  L.tileLayer(
+    'https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}',
+    {
+      subdomains: '1234',
+      maxZoom: 19,
+    }
+  ).addTo(mapInstance)
+
+  // 修复 Leaflet 默认图标路径问题
+  const defaultIcon = L.icon({
+    iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+    iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+    shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34],
+    shadowSize: [41, 41],
+  })
+
+  // 添加标记点
+  L.marker([lat, lng], { icon: defaultIcon })
+    .addTo(mapInstance)
+    .bindPopup('<strong>杭州城市学院</strong><br/>浙江省杭州市拱墅区湖州街51号')
+    .openPopup()
+
+  // 延迟刷新尺寸，确保容器完全渲染后再加载瓦片
+  setTimeout(() => {
+    mapInstance?.invalidateSize()
+  }, 200)
+}
+
 /* ── Intersection Observer for fade-in ── */
 let observer: IntersectionObserver | null = null
 
@@ -221,10 +271,19 @@ onMounted(() => {
   document.querySelectorAll('.animate-section').forEach((el) => {
     observer?.observe(el)
   })
+
+  // 初始化地图（等 DOM 渲染完成后）
+  nextTick(() => {
+    initMap()
+  })
 })
 
 onBeforeUnmount(() => {
   observer?.disconnect()
+  if (mapInstance) {
+    mapInstance.remove()
+    mapInstance = null
+  }
 })
 </script>
 
@@ -550,19 +609,14 @@ onBeforeUnmount(() => {
   flex-shrink: 0;
 }
 .contact-map {
-  min-height: 240px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  min-height: 300px;
   overflow: hidden;
+  border-radius: 12px;
 }
-.map-placeholder {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  color: var(--text-muted);
-  font-size: 0.9rem;
+.map-container {
+  width: 100%;
+  height: 300px;
+  border-radius: 12px;
 }
 
 /* ========== Footer ========== */

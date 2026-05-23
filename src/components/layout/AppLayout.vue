@@ -94,7 +94,11 @@ const route = useRoute()
 const currentUser = computed(() => auth.user)
 
 const pageTitle = computed(() => {
-  return (route.meta.title as string) || '医馆管理系统'
+  const title = (route.meta.title as string) || '医馆管理系统'
+  if (route.path === '/services' && auth.user?.role === 'STAFF') {
+    return '服务项目展示'
+  }
+  return title
 })
 
 const userInitial = computed(() => {

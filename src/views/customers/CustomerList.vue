@@ -6,7 +6,7 @@
           <Download :size="16" />
           {{ exporting ? '导出中...' : '导出数据' }}
         </button>
-        <button class="btn btn-ghost" @click="openImport">
+        <button v-if="isAdmin" class="btn btn-ghost" @click="openImport">
           <FileUp :size="16" />
           批量录入
         </button>
@@ -118,7 +118,7 @@
               <td><input class="input" v-model.trim="r.name" placeholder="姓名" /></td>
               <td><input class="input" v-model.trim="r.phone" placeholder="手机号" /></td>
               <td><input class="input" v-model.trim="r.email" placeholder="邮箱" /></td>
-              <td><input class="input" v-model.trim="r.gender" placeholder="男/女" /></td>
+              <td><select class="select" v-model="r.gender"><option value="">请选择</option><option value="男">男</option><option value="女">女</option></select></td>
               <td><input class="input" v-model.trim="r.tags" placeholder="逗号分隔标签" /></td>
               <td><input class="input" type="date" v-model="r.birthday" /></td>
               <td><input class="input" v-model.trim="r.note" placeholder="备注" /></td>
@@ -141,10 +141,12 @@ import { computed, onMounted, ref } from 'vue'
 import { Download, FileUp, Plus, Search, RotateCcw, Edit2, Trash2 } from 'lucide-vue-next'
 import { useRoute, useRouter } from 'vue-router'
 import { useUiStore } from '../../stores/ui'
+import { useAuthStore } from '../../stores/auth'
 import { deleteCustomer, importCustomers, listCustomers, exportCustomers } from '../../api/customer'
 import CustomerFormModal from '../../components/customer/CustomerFormModal.vue'
 
 const ui = useUiStore()
+const auth = useAuthStore()
 const router = useRouter()
 const route = useRoute()
 type CustomerRow = { name: string; phone?: string; email?: string; gender?: string; tags?: string; note?: string; birthday?: string }
@@ -162,6 +164,7 @@ const formVisible = ref(false)
 const selectedCustomer = ref<any | null>(null)
 
 const totalPage = computed(() => Math.max(1, Math.ceil(total.value / size.value)))
+const isAdmin = computed(() => auth.user?.role === 'ADMIN')
 const parseErr = (e: any, fallback: string) => e?.response?.data?.message || fallback
 
 const hydrateFromQuery = () => {

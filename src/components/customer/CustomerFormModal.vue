@@ -1,5 +1,5 @@
 <template>
-  <div v-if="visible" class="mask" @click.self="close">
+  <div v-if="visible" class="mask" @mousedown.self="close">
     <div class="modal card" @click.stop>
       <h4>{{ editingId ? '编辑客户' : '新增客户' }}</h4>
       <p v-if="errorMessage" class="error-banner">{{ errorMessage }}</p>
@@ -8,7 +8,7 @@
         <label>姓名</label><input class="input" v-model.trim="form.name" />
         <label>手机号</label><input class="input" v-model.trim="form.phone" />
         <label>邮箱</label><input class="input" v-model.trim="form.email" />
-        <label>性别</label><input class="input" v-model.trim="form.gender" />
+        <label>性别</label><select class="select" v-model="form.gender"><option value="">请选择</option><option value="男">男</option><option value="女">女</option></select>
         <label>标签</label><input class="input" v-model.trim="form.tags" />
         <label>生日</label><input class="input" type="date" v-model="form.birthday" />
         <label>备注</label><textarea class="input" rows="3" v-model.trim="form.note" style="resize: vertical;"></textarea>
@@ -87,6 +87,22 @@ const submit = async () => {
   if (!form.name?.trim()) {
     errorMessage.value = '姓名不能为空'
     ui.toast('姓名不能为空', 'error')
+    return
+  }
+
+  // 手机号格式校验：必须为11位纯数字
+  const phoneVal = form.phone?.trim() || ''
+  if (phoneVal && !/^1\d{10}$/.test(phoneVal)) {
+    errorMessage.value = '手机号格式不正确，请输入11位数字（以1开头）'
+    ui.toast('手机号格式不正确，请输入11位数字', 'error')
+    return
+  }
+
+  // 邮箱格式校验：必须包含@且格式合法
+  const emailVal = form.email?.trim() || ''
+  if (emailVal && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailVal)) {
+    errorMessage.value = '邮箱格式不正确，请输入合法的电子邮件地址'
+    ui.toast('邮箱格式不正确，请输入合法的电子邮件', 'error')
     return
   }
 

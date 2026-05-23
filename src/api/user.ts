@@ -21,6 +21,6 @@ export function exportUsers(params: { keyword?: string; role?: string; active?: 
 
 export function listTherapists() {
   return http.get<ApiResponse<PageResponse<UserResponse>>>('/users', {
-    params: { page: 1, size: 100, active: true }
+    params: { page: 1, size: 100, active: true, role: 'STAFF' }
   })
 }

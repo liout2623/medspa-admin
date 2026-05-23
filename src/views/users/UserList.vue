@@ -54,6 +54,9 @@
             <button class="btn-mini edit" @click="openEdit(u)" title="编辑">
               <Edit2 :size="14" />
             </button>
+            <button v-if="u.role === 'STAFF'" class="btn-mini svc-assign" @click="openServiceConfig(u)" title="配置项目">
+              <Settings :size="14" />
+            </button>
             <button class="btn-mini del" @click="onDelete(u.id)" title="删除">
               <Trash2 :size="14" />
             </button>
@@ -99,14 +102,39 @@
       </div>
     </div>
   </div>
+
+  <!-- 服务项目配置弹窗 -->
+  <div v-if="svcConfigVisible" class="mask" @click="closeSvcConfig">
+    <div class="modal card svc-config-modal" @click.stop>
+      <h4>配置项目 — {{ svcConfigUser?.displayName }}</h4>
+      <p v-if="svcConfigLoading" style="text-align:center;color:var(--text-muted);padding:20px 0">加载中...</p>
+      <div v-else class="svc-check-list">
+        <label v-for="s in svcAllServices" :key="s.id" class="svc-check-item">
+          <input type="checkbox" :value="s.id" v-model="svcSelectedIds" />
+          <span class="svc-check-name">{{ s.name }}</span>
+          <span class="svc-check-info">¥{{ (s.price ?? 0).toFixed(2) }} · {{ s.durationMinutes || 60 }}分钟</span>
+        </label>
+        <p v-if="!svcAllServices.length" style="text-align:center;color:var(--text-muted);padding:16px 0">暂无启用的服务项目</p>
+      </div>
+      <div class="actions">
+        <button class="btn btn-ghost" @click="closeSvcConfig">取消</button>
+        <button class="btn btn-primary" :disabled="svcConfigSaving" @click="saveSvcConfig">
+          {{ svcConfigSaving ? '保存中...' : '保存' }}
+        </button>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { Download, Plus, Edit2, Trash2, Search } from 'lucide-vue-next'
+import { Download, Plus, Edit2, Trash2, Search, Settings } from 'lucide-vue-next'
 import { useUiStore } from '../../stores/ui'
 import { useAuthStore } from '../../stores/auth'
 import { createUser, deleteUser, listUsers, updateUser, exportUsers } from '../../api/user'
+import { getTherapistServices, assignTherapistServices } from '../../api/therapistService'
+import { listServices } from '../../api/service'
+import type { ServiceResponse } from '../../api/service'
 import type { UserResponse } from '../../types/auth'
 import type { UserForm, UserUpsertRequest } from '../../types/user'
 
@@ -274,6 +302,57 @@ const onExport = async () => {
   }
 }
 
+/* ── 服务项目配置 ── */
+const svcConfigVisible = ref(false)
+const svcConfigUser = ref<UserResponse | null>(null)
+const svcAllServices = ref<ServiceResponse[]>([])
+const svcSelectedIds = ref<number[]>([])
+const svcConfigLoading = ref(false)
+const svcConfigSaving = ref(false)
+
+const openServiceConfig = async (u: UserResponse) => {
+  if (!isAdmin.value) return
+  svcConfigUser.value = u
+  svcConfigVisible.value = true
+  svcConfigLoading.value = true
+  svcSelectedIds.value = []
+  try {
+    // 并行获取全部启用项目 + 该理疗师已有项目
+    const [allRes, assignedRes] = await Promise.all([
+      listServices({ page: 1, size: 100, active: true }),
+      getTherapistServices(u.id)
+    ])
+    svcAllServices.value = allRes.data.data.items || []
+    svcSelectedIds.value = (assignedRes.data.data || []).map(s => s.id)
+  } catch (e: any) {
+    ui.toast(e?.response?.data?.message || '加载配置数据失败', 'error')
+  } finally {
+    svcConfigLoading.value = false
+  }
+}
+
+const closeSvcConfig = () => {
+  svcConfigVisible.value = false
+  svcConfigUser.value = null
+}
+
+const saveSvcConfig = async () => {
+  if (!svcConfigUser.value) return
+  try {
+    svcConfigSaving.value = true
+    await assignTherapistServices({
+      therapistId: svcConfigUser.value.id,
+      serviceIds: svcSelectedIds.value
+    })
+    ui.toast('配置保存成功', 'success')
+    closeSvcConfig()
+  } catch (e: any) {
+    ui.toast(e?.response?.data?.message || '保存配置失败', 'error')
+  } finally {
+    svcConfigSaving.value = false
+  }
+}
+
 onMounted(load)
 </script>
 
@@ -286,5 +365,16 @@ onMounted(load)
 .grid{display:grid;grid-template-columns:140px 1fr;gap:10px;align-items:center}
 .grid label{white-space:nowrap;}
 .actions{margin-top:16px;display:flex;justify-content:flex-end;gap:8px}
+.btn-mini.svc-assign{background:rgba(59,130,246,.08);color:var(--brand);border:1px solid rgba(59,130,246,.18)}
+.btn-mini.svc-assign:hover{background:rgba(59,130,246,.14)}
+html.dark .btn-mini.svc-assign{background:rgba(59,130,246,.14);color:#7cb8ff;border-color:rgba(59,130,246,.28)}
+html.dark .btn-mini.svc-assign:hover{background:rgba(59,130,246,.2)}
+.svc-config-modal{min-width:440px;max-width:560px;max-height:80vh;display:flex;flex-direction:column}
+.svc-check-list{max-height:50vh;overflow-y:auto;display:flex;flex-direction:column;gap:4px;margin:8px 0}
+.svc-check-item{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;cursor:pointer;transition:background .15s ease}
+.svc-check-item:hover{background:var(--bg-subtle)}
+.svc-check-item input[type="checkbox"]{flex-shrink:0;accent-color:var(--brand);width:16px;height:16px}
+.svc-check-name{font-weight:500;color:var(--text-strong)}
+.svc-check-info{margin-left:auto;font-size:.78rem;color:var(--text-muted);white-space:nowrap}
 @media (max-width: 980px){ .toolbar{grid-template-columns:1fr 1fr} }
 </style>

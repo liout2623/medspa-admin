@@ -9,9 +9,9 @@
       </div>
 
       <div class="nav-group">
-        <button class="btn btn-ghost" :disabled="loading" @click="goPrev"><ChevronLeft :size="16" /></button>
+        <button class="btn btn-ghost" :disabled="loading || !canGoPrev" @click="goPrev"><ChevronLeft :size="16" /></button>
         <button class="btn btn-ghost" :disabled="loading" @click="goToday">今天</button>
-        <button class="btn btn-ghost" :disabled="loading" @click="goNext"><ChevronRight :size="16" /></button>
+        <button class="btn btn-ghost" :disabled="loading || !canGoNext" @click="goNext"><ChevronRight :size="16" /></button>
       </div>
 
       <span class="date-display">{{ dateDisplay }}</span>
@@ -93,8 +93,8 @@
           v-for="d in weekDates"
           :key="'wh-' + d.key"
           class="week-header-cell"
-          :class="{ today: d.isToday }"
-          @click="goToDate(d.date)"
+          :class="{ today: d.isToday, 'out-of-range': d.outOfRange }"
+          @click="!d.outOfRange && goToDate(d.date)"
         >
           <div class="week-day-name">{{ d.dayName }}</div>
           <div class="week-day-num">{{ d.dayNum }}</div>
@@ -149,8 +149,8 @@
             v-for="d in week"
             :key="d.key"
             class="month-day-cell"
-            :class="{ 'other-month': !d.inMonth, today: d.isToday }"
-            @click="d.inMonth && onMonthDayClick(d.date)"
+            :class="{ 'other-month': !d.inMonth, today: d.isToday, 'out-of-range': d.outOfRange && d.inMonth }"
+            @click="d.inMonth && !d.outOfRange && onMonthDayClick(d.date)"
           >
             <div class="month-day-num">{{ d.dayNum }}</div>
             <div v-if="d.eventCount > 0" class="month-day-indicators">
@@ -232,6 +232,7 @@ interface MonthDay {
   dayNum: number
   inMonth: boolean
   isToday: boolean
+  outOfRange: boolean
   eventCount: number
   bookedCount: number
   completedCount: number
@@ -363,6 +364,43 @@ function layoutEvents(events: AppointmentResponse[]): PositionedEvent[] {
   }))
 }
 
+/* ── date range ── */
+const todayStr = computed(() => formatDateStr(new Date()))
+const maxDateStr = computed(() => {
+  const d = new Date()
+  d.setDate(d.getDate() + 14)
+  return formatDateStr(d)
+})
+
+/* ── navigation boundary ── */
+const canGoPrev = computed(() => {
+  if (viewMode.value === 'day') {
+    return formatDateStr(currentDate.value) > todayStr.value
+  }
+  if (viewMode.value === 'week') {
+    const monday = getMonday(currentDate.value)
+    return formatDateStr(monday) > todayStr.value
+  }
+  // month: prev month is entirely before today when this month's 1st <= today
+  const firstDay = new Date(currentDate.value.getFullYear(), currentDate.value.getMonth(), 1)
+  return formatDateStr(firstDay) > todayStr.value
+})
+
+const canGoNext = computed(() => {
+  if (viewMode.value === 'day') {
+    return formatDateStr(currentDate.value) < maxDateStr.value
+  }
+  if (viewMode.value === 'week') {
+    const monday = getMonday(currentDate.value)
+    const nextMonday = new Date(monday)
+    nextMonday.setDate(monday.getDate() + 7)
+    return formatDateStr(nextMonday) <= maxDateStr.value
+  }
+  // month: next month's 1st must still be within range
+  const nextMonthFirst = new Date(currentDate.value.getFullYear(), currentDate.value.getMonth() + 1, 1)
+  return formatDateStr(nextMonthFirst) <= maxDateStr.value
+})
+
 /* ── computed ── */
 const isToday = computed(() => isSameDay(currentDate.value, new Date()))
 
@@ -394,15 +432,20 @@ const weekDates = computed(() => {
   const monday = getMonday(currentDate.value)
   const dayNames = ['周一', '周二', '周三', '周四', '周五', '周六', '周日']
   const today = new Date()
+  const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate())
+  const maxDay = new Date(todayStart)
+  maxDay.setDate(maxDay.getDate() + 14)
   return Array.from({ length: 7 }, (_, i) => {
     const date = new Date(monday)
     date.setDate(monday.getDate() + i)
+    const dayStart = new Date(date.getFullYear(), date.getMonth(), date.getDate())
     return {
       date,
       key: formatDateStr(date),
       dayName: dayNames[i],
       dayNum: date.getDate(),
-      isToday: isSameDay(date, today)
+      isToday: isSameDay(date, today),
+      outOfRange: dayStart < todayStart || dayStart > maxDay
     }
   })
 })
@@ -446,6 +489,9 @@ const monthWeeks = computed(() => {
   const numWeeks = Math.ceil(totalDays / 7)
 
   const today = new Date()
+  const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate())
+  const maxDay = new Date(todayStart)
+  maxDay.setDate(maxDay.getDate() + 14)
   const weeks: MonthDay[][] = []
   let currentWeek: MonthDay[] = []
 
@@ -454,6 +500,7 @@ const monthWeeks = computed(() => {
     date.setDate(startDate.getDate() + i)
     const key = formatDateStr(date)
     const events = eventsByDate.value.get(key) || []
+    const dayStart = new Date(date.getFullYear(), date.getMonth(), date.getDate())
 
     currentWeek.push({
       date,
@@ -461,6 +508,7 @@ const monthWeeks = computed(() => {
       dayNum: date.getDate(),
       inMonth: date.getMonth() === month,
       isToday: isSameDay(date, today),
+      outOfRange: dayStart < todayStart || dayStart > maxDay,
       eventCount: events.length,
       bookedCount: events.filter(e => e.status === 'BOOKED').length,
       completedCount: events.filter(e => e.status === 'COMPLETED').length,
@@ -526,7 +574,9 @@ const load = async () => {
 const loadTherapists = async () => {
   try {
     const res = await listTherapists()
-    therapistOptions.value = res.data.data.items || []
+    // 前端双重保障：仅保留 STAFF 角色用户
+    const items = res.data.data.items || []
+    therapistOptions.value = items.filter(u => u.role === 'STAFF')
   } catch { /* silent */ }
 }
 
@@ -579,7 +629,9 @@ const setStatusFilter = (s: AppointmentStatus | null) => {
 /* ── event handlers ── */
 const openCreate = () => {
   selectedAppointment.value = null
-  initialDate.value = formatDateStr(currentDate.value)
+  // Clamp initial date to valid range (today ~ today+14)
+  const current = formatDateStr(currentDate.value)
+  initialDate.value = current < todayStr.value ? todayStr.value : (current > maxDateStr.value ? maxDateStr.value : current)
   initialTime.value = '09:00'
   // STAFF 用户锁定理疗师为自己
   if (!isAdmin.value && currentUser.value?.id) {
@@ -595,6 +647,8 @@ const openDetail = (appt: AppointmentResponse) => {
 
 const onDayGridClick = (e: MouseEvent) => {
   if (!dayBodyRef.value) return
+  const dateStr = formatDateStr(currentDate.value)
+  if (dateStr < todayStr.value || dateStr > maxDateStr.value) return
   const rect = dayBodyRef.value.getBoundingClientRect()
   const y = e.clientY - rect.top
   const minutesFromStart = (y / HOUR_HEIGHT) * 60
@@ -609,6 +663,8 @@ const onDayGridClick = (e: MouseEvent) => {
 }
 
 const onWeekColClick = (date: Date, e: MouseEvent) => {
+  const dateStr = formatDateStr(date)
+  if (dateStr < todayStr.value || dateStr > maxDateStr.value) return
   const target = e.currentTarget as HTMLElement
   const rect = target.getBoundingClientRect()
   const y = e.clientY - rect.top
@@ -735,6 +791,9 @@ onUnmounted(() => {
 .week-header-cell.today .week-day-num{background:var(--brand);color:#fff;border-radius:50%;width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center}
 .week-day-name{font-size:.75rem;color:var(--text-muted);font-weight:500}
 .week-day-num{font-size:1rem;font-weight:700;color:var(--text-strong);margin-top:2px}
+.week-header-cell.out-of-range{opacity:.4;cursor:default}
+.week-header-cell.out-of-range .week-day-num{color:var(--text-muted)}
+.week-header-cell.out-of-range:hover{background:transparent}
 
 .week-body-scroll{overflow-y:auto;max-height:calc(100vh - 260px)}
 .week-body{display:flex;position:relative}
@@ -758,6 +817,9 @@ onUnmounted(() => {
 .month-day-cell:hover{background:var(--table-hover)}
 .month-day-cell.other-month{opacity:.35;cursor:default}
 .month-day-cell.other-month:hover{background:transparent}
+.month-day-cell.out-of-range{opacity:.4;cursor:default}
+.month-day-cell.out-of-range:hover{background:transparent}
+.month-day-cell.out-of-range .month-day-num{color:var(--text-muted)}
 .month-day-cell.today .month-day-num{background:var(--brand);color:#fff;border-radius:50%;width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center}
 .month-day-num{font-size:.9rem;font-weight:600;color:var(--text-strong);line-height:1}
 .month-day-indicators{display:flex;align-items:center;gap:4px;margin-top:4px;flex-wrap:wrap}

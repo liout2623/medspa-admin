@@ -1,8 +1,8 @@
 <template>
   <section class="card panel">
-    <div class="panel-head">
+    <div v-if="isAdmin" class="panel-head">
       <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <button v-if="isAdmin" class="btn btn-primary" @click="openCreate">
+        <button class="btn btn-primary" @click="openCreate">
           <Plus :size="16" />
           新增服务项目
         </button>
@@ -44,8 +44,8 @@
         </tr>
       </thead>
       <tbody v-if="displayList.length">
-        <tr v-for="item in displayList" :key="item.id">
-          <td>{{ item.id }}</td>
+        <tr v-for="(item, index) in displayList" :key="item.id">
+          <td>{{ isAdmin ? item.id : (page - 1) * size + index + 1 }}</td>
           <td>
             <div class="name-cell">
               <span class="service-name">{{ item.name || '—' }}</span>
@@ -253,6 +253,7 @@ onMounted(load)
 
 <style scoped>
 .name-cell{display:flex;flex-direction:column;gap:4px}
+.panel-title{margin:0;font-size:1.1rem;font-weight:700;color:var(--text-strong)}
 .service-name{font-weight:600;color:var(--text-strong)}
 .service-desc{font-size:12px;color:var(--text-muted);line-height:1.4;max-width:520px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .num-cell{font-variant-numeric:tabular-nums;text-align:left}
